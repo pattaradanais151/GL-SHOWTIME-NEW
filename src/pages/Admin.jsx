@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../utils/supabase';
-import { Zap, PlaySquare, MessageSquare, CheckCircle2, AlertCircle, Edit, Search, ChevronLeft, ChevronRight, Key, Users, ScrollText, PlusCircle, Trash2 } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -12,6 +11,9 @@ const Admin = () => {
   const [adminsList, setAdminsList] = useState([]);
   const [logsList, setLogsList] = useState([]);
   
+  // State สำหรับจัดการการเลือก Logs
+  const [selectedLogs, setSelectedLogs] = useState([]);
+  
   const [activeTab, setActiveTab] = useState('add');
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   
@@ -20,7 +22,8 @@ const Admin = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [logPage, setLogPage] = useState(1);
   
-  const initialForm = { title: '', rating: '', release_date: '', genre: '', director: '', platform: '', air_day: '', air_time: '', youtube_url: '', admin_note: '' };
+  // เพิ่ม status เข้าไปใน initialForm
+  const initialForm = { title: '', rating: '', release_date: '', genre: '', director: '', platform: '', air_day: '', air_time: '', youtube_url: '', admin_note: '', status: 'Standard' };
   const [formData, setFormData] = useState(initialForm);
 
   const [newAdminForm, setNewAdminForm] = useState({ username: '', password: '' });
@@ -52,7 +55,6 @@ const Admin = () => {
     if (data) setLogsList(data);
   };
 
-  // ฟังก์ชันกลางสำหรับเขียน Log
   const writeLog = async (action, target, details) => {
     await supabase.from('logs').insert([{
       action, performed_by: currentAdmin, target, details, ip_address: ipAddress
@@ -60,7 +62,6 @@ const Admin = () => {
     fetchLogs();
   };
 
-  // เช็คลิมิต: ห้ามยุ่งกับข้อมูลแอดมินคนอื่นเกิน 2 ครั้งใน 7 วัน
   const checkAdminEditLimit = async () => {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -78,7 +79,7 @@ const Admin = () => {
     }
 
     if (count >= 2) {
-      showToast('⚠️ คุณใช้สิทธิ์จัดการผู้ดูแลระบบคนอื่นครบ 2 ครั้งในสัปดาห์นี้แล้ว', 'error');
+      showToast('คำเตือน: คุณใช้สิทธิ์จัดการผู้ดูแลระบบคนอื่นครบ 2 ครั้งในสัปดาห์นี้แล้ว', 'error');
       return false;
     }
     return true;
@@ -99,25 +100,40 @@ const Admin = () => {
   // -------------------------
   const handleSaveMovie = async (e) => {
     e.preventDefault();
+    
+    let statusText = formData.status === 'Standard' ? 'กำลังออนแอร์' : formData.status === 'Coming Soon' ? 'เร็วๆ นี้' : 'จบไปแล้ว';
+
     if (editingId) {
       const { error } = await supabase.from('movies').update(formData).eq('id', editingId);
       if (!error) {
         showToast('อัปเดตข้อมูลสำเร็จ!', 'success');
-        writeLog('EDIT_MOVIE', formData.title, 'Updated movie details');
+        writeLog('EDIT_MOVIE', formData.title, `Updated movie details (สถานะ: ${statusText})`);
         resetForm(); fetchMovies(); setActiveTab('manage');
       } else showToast('แก้ไขไม่สำเร็จ: ' + error.message, 'error');
     } else {
       const { error } = await supabase.from('movies').insert([formData]);
       if (!error) {
         showToast('เพิ่มภาพยนตร์เข้าสู่ระบบสำเร็จ!', 'success');
-        writeLog('ADD_MOVIE', formData.title, 'Added new movie');
+        writeLog('ADD_MOVIE', formData.title, `Added new movie (สถานะ: ${statusText})`);
         resetForm(); fetchMovies();
       } else showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
     }
   };
 
   const handleEditClick = (movie) => {
-    setFormData({ title: movie.title || '', rating: movie.rating || '', release_date: movie.release_date || '', genre: movie.genre || '', director: movie.director || '', platform: movie.platform || '', air_day: movie.air_day || '', air_time: movie.air_time || '', youtube_url: movie.youtube_url || '', admin_note: movie.admin_note || '' });
+    setFormData({ 
+      title: movie.title || '', 
+      rating: movie.rating || '', 
+      release_date: movie.release_date || '', 
+      genre: movie.genre || '', 
+      director: movie.director || '', 
+      platform: movie.platform || '', 
+      air_day: movie.air_day || '', 
+      air_time: movie.air_time || '', 
+      youtube_url: movie.youtube_url || '', 
+      admin_note: movie.admin_note || '',
+      status: movie.status || 'Standard' 
+    });
     setEditingId(movie.id);
     setActiveTab('add');
   };
@@ -142,8 +158,50 @@ const Admin = () => {
   const paginatedAdminMovies = filteredAdminMovies.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
   useEffect(() => { setCurrentPage(1); }, [adminSearch]);
 
+  // -------------------------
+  // ส่วนจัดการ Logs (แก้ไขเพิ่มระบบลบ)
+  // -------------------------
   const totalLogPages = Math.ceil(logsList.length / ITEMS_PER_PAGE);
   const paginatedLogs = logsList.slice((logPage - 1) * ITEMS_PER_PAGE, logPage * ITEMS_PER_PAGE);
+
+  const toggleSelectLog = (id) => {
+    setSelectedLogs(prev => prev.includes(id) ? prev.filter(lId => lId !== id) : [...prev, id]);
+  };
+
+  const selectAllLogs = () => {
+    if (selectedLogs.length === paginatedLogs.length && paginatedLogs.length > 0) {
+      setSelectedLogs([]);
+    } else {
+      setSelectedLogs(paginatedLogs.map(log => log.id));
+    }
+  };
+
+  const deleteSelectedLogs = async () => {
+    if (selectedLogs.length === 0) return;
+    if (window.confirm(`ยืนยันการลบ Log จำนวน ${selectedLogs.length} รายการ?`)) {
+      const { error } = await supabase.from('logs').delete().in('id', selectedLogs);
+      if (!error) {
+        showToast('ลบ Log สำเร็จ', 'success');
+        setSelectedLogs([]);
+        fetchLogs();
+      } else {
+        showToast('ลบไม่สำเร็จ: ' + error.message, 'error');
+      }
+    }
+  };
+
+  const deleteAllLogs = async () => {
+    if (window.confirm('คุณแน่ใจหรือไม่ที่จะลบประวัติ Log ทั้งหมดในระบบ? (การกระทำนี้ไม่สามารถกู้คืนได้)')) {
+      const { error } = await supabase.from('logs').delete().neq('id', 0);
+      if (!error) {
+        showToast('ลบ Log ทั้งหมดสำเร็จ', 'success');
+        setSelectedLogs([]);
+        fetchLogs();
+      } else {
+        showToast('ลบไม่สำเร็จ: ' + error.message, 'error');
+      }
+    }
+  };
 
   // -------------------------
   // ส่วนจัดการ User (Admin)
@@ -231,21 +289,21 @@ const Admin = () => {
   return (
     <div>
       <div className="admin-tabs" style={{ overflowX: 'auto', whiteSpace: 'nowrap' }}>
-        <div className="admin-mode-badge"><Zap size={16} /> ADMIN MODE</div>
+        <div className="admin-mode-badge">ADMIN MODE</div>
         <button className={`tab-btn ${activeTab === 'add' ? 'active' : ''}`} onClick={() => { setActiveTab('add'); if(!editingId) resetForm(); }}>
-          <PlaySquare size={16} style={{display:'inline', marginRight:'5px'}}/> {editingId ? 'กำลังแก้ไขหนัง...' : 'เพิ่มภาพยนตร์'}
+          {editingId ? 'กำลังแก้ไขหนัง...' : 'เพิ่มภาพยนตร์'}
         </button>
         <button className={`tab-btn ${activeTab === 'manage' ? 'active' : ''}`} onClick={() => setActiveTab('manage')}>
-          <Search size={16} style={{display:'inline', marginRight:'5px'}}/> จัดการหนัง ({movies.length})
+          จัดการหนัง ({movies.length})
         </button>
         <button className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>
-          <Users size={16} style={{display:'inline', marginRight:'5px'}}/> จัดการแอดมิน
+          จัดการแอดมิน
         </button>
         <button className={`tab-btn ${activeTab === 'logs' ? 'active' : ''}`} onClick={() => setActiveTab('logs')}>
-          <ScrollText size={16} style={{display:'inline', marginRight:'5px'}}/> System Logs
+          System Logs
         </button>
         <button className={`tab-btn ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
-          <Key size={16} style={{display:'inline', marginRight:'5px'}}/> เปลี่ยนรหัสผ่านตัวเอง
+          เปลี่ยนรหัสผ่านตัวเอง
         </button>
       </div>
 
@@ -253,6 +311,16 @@ const Admin = () => {
         <div className="admin-form-container glass-panel" style={{ padding: '2rem' }}>
           <h2 style={{ textAlign: 'center', marginBottom: '2rem', fontSize: '1.25rem', color: editingId ? '#3b82f6' : 'inherit' }}>{editingId ? 'แก้ไขข้อมูลภาพยนตร์' : 'เพิ่มภาพยนตร์ใหม่'}</h2>
           <form onSubmit={handleSaveMovie}>
+            
+            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+              <label className="form-label">สถานะภาพยนตร์ *</label>
+              <select name="status" className="form-input" value={formData.status} onChange={handleInputChange} style={{ cursor: 'pointer' }}>
+                <option value="Ended">Ended (จบแล้ว)</option>
+                <option value="Standard">On Air (กำลังออนแอร์)</option>
+                <option value="Coming Soon">Coming Soon (เร็วๆ นี้)</option>
+              </select>
+            </div>
+
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>
               <label className="form-label">ชื่อเรื่อง *</label>
               <input type="text" name="title" className="form-input" placeholder="ชื่อภาพยนตร์หรือซีรีส์" required value={formData.title} onChange={handleInputChange} />
@@ -289,7 +357,7 @@ const Admin = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
             <h2>รายการทั้งหมด ({movies.length} เรื่อง)</h2>
             <div style={{ display: 'flex', alignItems: 'center', background: 'var(--input-bg)', borderRadius: '0.5rem', padding: '0.5rem 1rem' }}>
-              <Search size={16} color="var(--text-muted)" style={{ marginRight: '0.5rem' }} />
+              <span style={{ marginRight: '0.5rem', color: 'var(--text-muted)' }}>🔍</span>
               <input type="text" placeholder="ค้นหาเพื่อแก้ไข/ลบ..." value={adminSearch} onChange={(e) => setAdminSearch(e.target.value)} style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', outline: 'none' }} />
             </div>
           </div>
@@ -298,10 +366,12 @@ const Admin = () => {
               <div key={movie.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'var(--item-bg)', borderRadius: '0.5rem' }}>
                 <div>
                   <strong style={{ display: 'block', marginBottom: '0.25rem' }}>{movie.title}</strong>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{movie.genre || '-'} | {movie.platform || '-'}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    สถานะ: {movie.status === 'Standard' ? 'กำลังออนแอร์' : movie.status === 'Coming Soon' ? 'เร็วๆ นี้' : 'จบแล้ว'} | {movie.genre || '-'} | {movie.platform || '-'}
+                  </div>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button onClick={() => handleEditClick(movie)} className="btn-edit" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Edit size={16} /> แก้ไข</button>
+                  <button onClick={() => handleEditClick(movie)} className="btn-edit" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>แก้ไข</button>
                   <button onClick={() => handleDeleteMovie(movie.id, movie.title)} style={{ background: '#dc2626', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '0.5rem', cursor: 'pointer' }}>ลบ</button>
                 </div>
               </div>
@@ -309,9 +379,9 @@ const Admin = () => {
           </div>
           {totalPages > 1 && (
             <div className="pagination" style={{ marginTop: '2rem' }}>
-              <button className="page-btn" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}><ChevronLeft size={16} /> ก่อนหน้า</button>
+              <button className="page-btn" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>ก่อนหน้า</button>
               <span className="page-info">หน้า {currentPage} จาก {totalPages}</span>
-              <button className="page-btn" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>ถัดไป <ChevronRight size={16} /></button>
+              <button className="page-btn" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>ถัดไป</button>
             </div>
           )}
         </div>
@@ -319,12 +389,12 @@ const Admin = () => {
 
       {activeTab === 'users' && (
         <div className="admin-form-container glass-panel" style={{ padding: '2rem' }}>
-          <h2 style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Users size={24} color="var(--pink-accent)"/> จัดการบัญชีผู้ดูแลระบบ (Admins)</h2>
+          <h2 style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>จัดการบัญชีผู้ดูแลระบบ (Admins)</h2>
           
           <form onSubmit={handleAddAdmin} style={{ display: 'flex', gap: '1rem', marginBottom: '3rem', flexWrap: 'wrap' }}>
             <input type="text" className="form-input" style={{ flex: 1, minWidth: '150px' }} placeholder="Username ใหม่" value={newAdminForm.username} onChange={(e)=>setNewAdminForm({...newAdminForm, username: e.target.value})} required />
             <input type="password" className="form-input" style={{ flex: 1, minWidth: '150px' }} placeholder="Password (6 ตัวขึ้นไป)" value={newAdminForm.password} onChange={(e)=>setNewAdminForm({...newAdminForm, password: e.target.value})} required />
-            <button type="submit" className="btn-primary" style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><PlusCircle size={18}/> เพิ่ม Admin</button>
+            <button type="submit" className="btn-primary" style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>เพิ่ม Admin</button>
           </form>
 
           <div style={{ background: 'var(--item-bg)', borderRadius: '0.5rem', padding: '1rem', border: '1px solid var(--glass-border)' }}>
@@ -332,15 +402,15 @@ const Admin = () => {
             {adminsList.map(admin => (
               <div key={admin.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', borderBottom: '1px solid var(--glass-border)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <div style={{ background: 'var(--glass-hover)', padding: '0.5rem', borderRadius: '50%' }}><Users size={20} /></div>
+                  <div style={{ background: 'var(--glass-hover)', padding: '0.5rem', borderRadius: '50%' }}>👤</div>
                   <strong style={{ color: admin.username === currentAdmin ? 'var(--pink-accent)' : 'var(--text-main)' }}>
                     {admin.username} {admin.username === currentAdmin ? '(คุณ)' : ''}
                   </strong>
                 </div>
                 {admin.username !== currentAdmin && (
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button onClick={() => handleForceChangePassword(admin.id, admin.username)} className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Key size={14}/> เปลี่ยนรหัส</button>
-                    <button onClick={() => handleDeleteAdmin(admin.id, admin.username)} style={{ background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', padding: '0.4rem 0.8rem', borderRadius: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Trash2 size={14}/> ลบ</button>
+                    <button onClick={() => handleForceChangePassword(admin.id, admin.username)} className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>เปลี่ยนรหัส</button>
+                    <button onClick={() => handleDeleteAdmin(admin.id, admin.username)} style={{ background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', padding: '0.4rem 0.8rem', borderRadius: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>ลบ</button>
                   </div>
                 )}
               </div>
@@ -351,11 +421,26 @@ const Admin = () => {
 
       {activeTab === 'logs' && (
         <div className="glass-panel" style={{ padding: '2rem' }}>
-          <h2 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><ScrollText size={24} color="var(--pink-accent)"/> บันทึกระบบ (System Logs)</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>บันทึกระบบ (System Logs)</h2>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button onClick={selectAllLogs} className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
+                {selectedLogs.length === paginatedLogs.length && paginatedLogs.length > 0 ? 'ยกเลิกการเลือก' : 'เลือกทั้งหมดในหน้านี้'}
+              </button>
+              <button onClick={deleteSelectedLogs} disabled={selectedLogs.length === 0} className="btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', width: 'auto', background: selectedLogs.length > 0 ? '#ef4444' : 'var(--input-bg)' }}>
+                ลบที่เลือก
+              </button>
+              <button onClick={deleteAllLogs} className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', color: '#ef4444', borderColor: '#ef4444' }}>
+                ลบทั้งหมด
+              </button>
+            </div>
+          </div>
+          
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', textAlign: 'left' }}>
               <thead>
                 <tr style={{ background: 'var(--item-bg)', color: 'var(--pink-accent)' }}>
+                  <th style={{ padding: '1rem', width: '50px', textAlign: 'center' }}>เลือก</th>
                   <th style={{ padding: '1rem' }}>เวลา (Date/Time)</th>
                   <th style={{ padding: '1rem' }}>การกระทำ (Action)</th>
                   <th style={{ padding: '1rem' }}>ผู้ดำเนินการ (User)</th>
@@ -366,6 +451,14 @@ const Admin = () => {
               <tbody>
                 {paginatedLogs.map(log => (
                   <tr key={log.id} style={{ borderBottom: '1px solid var(--glass-border)', color: log.action === 'LOGIN_FAILED' ? '#ef4444' : 'inherit' }}>
+                    <td style={{ padding: '1rem', textAlign: 'center' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={selectedLogs.includes(log.id)} 
+                        onChange={() => toggleSelectLog(log.id)} 
+                        style={{ cursor: 'pointer' }}
+                      />
+                    </td>
                     <td style={{ padding: '1rem' }}>{new Date(log.created_at).toLocaleString('th-TH')}</td>
                     <td style={{ padding: '1rem', fontWeight: 'bold' }}>{log.action}</td>
                     <td style={{ padding: '1rem' }}>{log.performed_by}</td>
@@ -379,9 +472,9 @@ const Admin = () => {
           </div>
           {totalLogPages > 1 && (
             <div className="pagination" style={{ marginTop: '2rem' }}>
-              <button className="page-btn" disabled={logPage === 1} onClick={() => setLogPage(p => p - 1)}><ChevronLeft size={16} /> ใหม่กว่า</button>
+              <button className="page-btn" disabled={logPage === 1} onClick={() => setLogPage(p => p - 1)}>ก่อนหน้า</button>
               <span className="page-info">หน้า {logPage} จาก {totalLogPages}</span>
-              <button className="page-btn" disabled={logPage === totalLogPages} onClick={() => setLogPage(p => p + 1)}>เก่ากว่า <ChevronRight size={16} /></button>
+              <button className="page-btn" disabled={logPage === totalLogPages} onClick={() => setLogPage(p => p + 1)}>ถัดไป</button>
             </div>
           )}
         </div>
@@ -403,7 +496,6 @@ const Admin = () => {
       {toast.show && (
         <div className="toast-container">
           <div className={`toast-alert ${toast.type}`}>
-            {toast.type === 'success' ? <CheckCircle2 size={24} color="#10b981" /> : <AlertCircle size={24} color="#ef4444" />}
             <span>{toast.message}</span>
           </div>
         </div>

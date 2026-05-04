@@ -1,207 +1,277 @@
-import { useEffect, useState, useMemo } from 'react';
-import { supabase } from '../utils/supabase';
-import MovieCard from '../components/MovieCard';
-import { Search, X, PlayCircle, Star, Calendar, Clock, Tv, User, Info, ChevronLeft, ChevronRight } from 'lucide-react';
-import { getYoutubeThumbnail } from '../utils/youtube';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../utils/supabase'; 
 
-const ITEMS_PER_PAGE = 12;
-
-const Home = () => {
+export default function Home() {
   const [movies, setMovies] = useState([]);
-  const [search, setSearch] = useState("");
-  const [selectedMovie, setSelectedMovie] = useState(null);
+  const [filteredMovies, setFilteredMovies] = useState([]);
+  const [loading, setLoading] = useState(true);
   
-  // States สำหรับ Filter และ Pagination
-  const [filterGenre, setFilterGenre] = useState("");
-  const [filterPlatform, setFilterPlatform] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const STATUS_ALL = 'ทั้งหมด';
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedGenre, setSelectedGenre] = useState('All Genres');
+  const [selectedPlatform, setSelectedPlatform] = useState('All Platforms');
+  const [selectedStatus, setSelectedStatus] = useState(STATUS_ALL);
 
+  const [selectedMovie, setSelectedMovie] = useState(null);
+
+  // ดึงข้อมูลจาก Supabase
   useEffect(() => {
+    const fetchMovies = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('movies') 
+          .select('*')
+          .order('id', { ascending: false });
+
+        if (error) throw error;
+
+        if (data) {
+          setMovies(data);
+          setFilteredMovies(data);
+        }
+      } catch (error) {
+        console.error('Error fetching movies:', error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchMovies();
   }, []);
 
-  const fetchMovies = async () => {
-    const { data, error } = await supabase
-      .from('movies')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (!error && data) setMovies(data);
+  // ระบบ Filter ข้อมูล
+  useEffect(() => {
+    let result = movies;
+    
+    // ค้นหาชื่อเรื่อง (title)
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(m => m.title?.toLowerCase().includes(term));
+    }
+    
+    // กรองหมวดหมู่ (genre)
+    if (selectedGenre !== 'All Genres') {
+      result = result.filter(m => m.genre === selectedGenre);
+    }
+    
+    // กรองแพลตฟอร์ม (platform)
+    if (selectedPlatform !== 'All Platforms') {
+      result = result.filter(m => m.platform === selectedPlatform);
+    }
+    
+    // กรองสถานะ (status)
+    if (selectedStatus !== STATUS_ALL) {
+      result = result.filter(m => {
+        // ดึงสถานะจาก DB มาเป็นตัวพิมพ์เล็กเพื่อเทียบ
+        const dbStatus = (m.status || '').toLowerCase();
+        
+        if (selectedStatus === 'Ended (จบแล้ว)') return dbStatus.includes('ended');
+        // จัดการกรณีพิเศษ ถ้า On Air ดันเก็บเป็น Standard ใน DB (ตามที่คุณเคยแจ้ง)
+        if (selectedStatus === 'On Air (กำลังออนแอร์)') return dbStatus.includes('on air') || dbStatus.includes('standard');
+        if (selectedStatus === 'Coming Soon (เร็วๆนี้)') return dbStatus.includes('coming soon');
+        
+        return dbStatus === selectedStatus.toLowerCase();
+      });
+    }
+    setFilteredMovies(result);
+  }, [searchTerm, selectedGenre, selectedPlatform, selectedStatus, movies]);
+
+  // ฟังก์ชันแยก ID YouTube
+  const getYoutubeId = (url) => {
+    if (!url) return null;
+    const match = url.match(/[?&]v=([^&]+)/) || url.match(/youtu\.be\/([^?]+)/) || url.match(/embed\/([^?]+)/);
+    return match ? match[1] : null;
   };
 
-  // ดึงหมวดหมู่และแพลตฟอร์มทั้งหมดที่มีมาทำ Dropdown อัตโนมัติ
-  const uniqueGenres = useMemo(() => {
-    const genres = movies.flatMap(m => m.genre ? m.genre.split(',').map(g => g.trim()) : []);
-    return [...new Set(genres)].filter(Boolean).sort();
-  }, [movies]);
+  // ฟังก์ชันสกัดภาพปกจาก YouTube หรือใช้รูปภาพที่มี
+  const getCoverImage = (movie) => {
+    // ถ้ามี URL ภาพ (กรณีที่คุณอาจจะเพิ่ม column ภาพในอนาคต)
+    if (movie.image_url) return movie.image_url;
+    
+    // ใช้ youtube_url จากโครงสร้าง DB ของคุณ
+    const ytId = getYoutubeId(movie.youtube_url);
+    if (ytId) {
+      return `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg`;
+    }
+    return 'https://via.placeholder.com/400x250/2a2a32/FFFFFF?text=No+Cover';
+  };
 
-  const uniquePlatforms = useMemo(() => {
-    const platforms = movies.map(m => m.platform ? m.platform.trim() : '');
-    return [...new Set(platforms)].filter(Boolean).sort();
-  }, [movies]);
-
-  // ระบบกรองข้อมูล (Filter & Search)
-  const filteredMovies = useMemo(() => {
-    return movies.filter(m => {
-      const matchSearch = m.title.toLowerCase().includes(search.toLowerCase());
-      const matchGenre = filterGenre === "" || (m.genre && m.genre.includes(filterGenre));
-      const matchPlatform = filterPlatform === "" || (m.platform && m.platform.includes(filterPlatform));
-      return matchSearch && matchGenre && matchPlatform;
-    });
-  }, [movies, search, filterGenre, filterPlatform]);
-
-  // ระบบแบ่งหน้า (Pagination)
-  const totalPages = Math.ceil(filteredMovies.length / ITEMS_PER_PAGE);
-  const paginatedMovies = filteredMovies.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, filterGenre, filterPlatform]);
+  const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>;
+  const StarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="#FFD700" viewBox="0 0 16 16"><path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/></svg>;
+  const CloseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/></svg>;
 
   return (
-    <div style={{ width: '100%', overflowX: 'hidden' }}>
-      {/* Header Section */}
-      <div className="text-center" style={{ margin: '2rem 0', padding: '0 1rem' }}>
-        <span className="gl-subtitle" style={{ fontSize: '0.75rem' }}>Girl Love Collection</span>
-        <h1 className="gl-title" style={{ fontSize: 'clamp(2rem, 8vw, 4rem)', lineHeight: '1.2' }}>GL Showtime TH</h1>
-        <p className="gl-desc" style={{ fontSize: '0.9rem' }}>คลังภาพยนตร์ GIRL LOVE - อัปเดตล่าสุด</p>
-      </div>
-
-      {/* แถบค้นหา - ปรับให้ Responsive */}
-      <div className="glass-panel search-wrapper" style={{ 
-        width: 'calc(100% - 2rem)', 
-        maxWidth: '600px', 
-        margin: '0 auto 1.5rem auto' 
-      }}>
-        <div className="search-icon"><Search size={20} /></div>
-        <input
-          className="search-input"
-          type="text"
-          placeholder="ค้นหาชื่อภาพยนตร์..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ width: '100%' }}
-        />
-      </div>
-
-      {/* แถบตัวกรอง - ปรับให้ยืดหยุ่นตามจอ */}
-      <div className="filter-container" style={{ 
-        padding: '0 1rem', 
-        display: 'flex', 
-        flexWrap: 'wrap', 
-        justifyContent: 'center', 
-        gap: '0.75rem' 
-      }}>
-        <select 
-          className="filter-select" 
-          value={filterGenre} 
-          onChange={(e) => setFilterGenre(e.target.value)}
-          style={{ flex: '1 1 160px', maxWidth: '280px' }}
-        >
-          <option value="">ทุกหมวดหมู่ (All Genres)</option>
-          {uniqueGenres.map(g => <option key={g} value={g}>{g}</option>)}
-        </select>
+    <div style={{ backgroundColor: '#0f0f13', minHeight: '100vh', color: '#fff', fontFamily: 'sans-serif' }}>
+      <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '2rem 1rem', boxSizing: 'border-box' }}>
         
-        <select 
-          className="filter-select" 
-          value={filterPlatform} 
-          onChange={(e) => setFilterPlatform(e.target.value)}
-          style={{ flex: '1 1 160px', maxWidth: '280px' }}
-        >
-          <option value="">ทุกแพลตฟอร์ม (All Platforms)</option>
-          {uniquePlatforms.map(p => <option key={p} value={p}>{p}</option>)}
-        </select>
-      </div>
-
-      {/* แสดงรายการหนัง - ปรับ Grid ให้รองรับมือถือ */}
-      <div className="movie-grid" style={{ 
-        marginTop: '2rem',
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-        gap: '1.5rem'
-      }}>
-        {paginatedMovies.map(movie => (
-          <div key={movie.id} onClick={() => setSelectedMovie(movie)} style={{ cursor: 'pointer' }}>
-            <MovieCard movie={movie} />
-          </div>
-        ))}
-      </div>
-
-      {filteredMovies.length === 0 && (
-        <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '5rem 0' }}>ไม่พบภาพยนตร์ที่ค้นหา</div>
-      )}
-
-      {/* ปุ่มแบ่งหน้า */}
-      {totalPages > 1 && (
-        <div className="pagination" style={{ flexWrap: 'wrap', gap: '1rem' }}>
-          <button className="page-btn" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>
-            <ChevronLeft size={16} />
-          </button>
-          <span className="page-info">หน้า {currentPage} / {totalPages}</span>
-          <button className="page-btn" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>
-            <ChevronRight size={16} />
-          </button>
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+          <p style={{ color: '#ff4d85', fontSize: '0.875rem', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Girl Love Collection</p>
+          <h1 style={{ fontSize: '2.5rem', fontWeight: 'bold', margin: '0 0 0.5rem 0' }}>GL Showtime TH</h1>
+          <p style={{ color: '#a0a0a0', fontSize: '0.9rem' }}>คลังภาพยนตร์ GIRL LOVE - อัปเดตล่าสุด</p>
         </div>
-      )}
 
-      {/* Modal Popup - ปรับขนาดคอนเทนต์ให้ Responsive */}
-      {selectedMovie && (
-        <div className="modal-overlay" onClick={() => setSelectedMovie(null)}>
-          <div className="glass-panel modal-content" style={{ 
-            width: '95%', 
-            maxWidth: '750px', 
-            borderRadius: '1.5rem',
-            margin: 'auto'
-          }} onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setSelectedMovie(null)}><X size={20} /></button>
-            
-            <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9' }}>
-              <img src={getYoutubeThumbnail(selectedMovie.youtube_url)} alt={selectedMovie.title} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '1.5rem 1.5rem 0 0' }} />
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, var(--bg-color), transparent)' }}></div>
-              <a href={selectedMovie.youtube_url} target="_blank" rel="noreferrer" style={{ 
-                position: 'absolute', bottom: '1rem', right: '1rem', 
-                background: 'var(--pink-accent)', color: 'white', padding: '0.5rem 1rem', 
-                borderRadius: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                textDecoration: 'none', fontWeight: 'bold', fontSize: '0.85rem' 
-              }}>
-                <PlayCircle size={18} /> ดูตัวอย่าง
-              </a>
+        {/* Filters */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center' }}>
+            <div style={{ position: 'relative', flex: '1 1 300px', maxWidth: '500px' }}>
+              <div style={{ position: 'absolute', top: '50%', left: '1rem', transform: 'translateY(-50%)', color: '#a0a0a0' }}><SearchIcon /></div>
+              <input type="text" placeholder="ค้นหาชื่อภาพยนตร์..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.5rem', backgroundColor: '#1c1c21', border: '1px solid #2a2a32', borderRadius: '8px', color: '#fff', outline: 'none', boxSizing: 'border-box' }}/>
             </div>
+            <select value={selectedGenre} onChange={(e) => setSelectedGenre(e.target.value)} style={{ padding: '0.75rem 1rem', backgroundColor: '#1c1c21', border: '1px solid #2a2a32', borderRadius: '8px', color: '#fff', outline: 'none', cursor: 'pointer', flex: '1 1 150px' }}>
+              <option>All Genres</option>
+              <option>Drama Romance</option>
+              <option>Fantasy</option>
+              <option>Romance</option>
+              <option>Drama</option>
+              <option>Comedy</option>
+            </select>
+            <select value={selectedPlatform} onChange={(e) => setSelectedPlatform(e.target.value)} style={{ padding: '0.75rem 1rem', backgroundColor: '#1c1c21', border: '1px solid #2a2a32', borderRadius: '8px', color: '#fff', outline: 'none', cursor: 'pointer', flex: '1 1 150px' }}>
+              <option>All Platforms</option>
+              <option>oneD</option>
+              <option>iQIYI</option>
+              <option>CH3 Plus</option>
+              <option>Netflix</option>
+              <option>Youtube</option>
+            </select>
+          </div>
 
-            <div style={{ padding: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <h2 style={{ fontSize: 'clamp(1.2rem, 4vw, 1.8rem)', fontFamily: 'Playfair Display, serif' }}>{selectedMovie.title}</h2>
-                {selectedMovie.rating && <div className="rating-badge"><Star size={14} fill="currentColor" /> {selectedMovie.rating}</div>}
-              </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+            {[STATUS_ALL, 'Ended (จบแล้ว)', 'On Air (กำลังออนแอร์)', 'Coming Soon (เร็วๆนี้)'].map(stat => (
+              <button 
+                key={stat} onClick={() => setSelectedStatus(stat)}
+                style={{
+                  padding: '0.5rem 1.5rem', borderRadius: '99px',
+                  backgroundColor: selectedStatus === stat ? '#331a24' : '#1c1c21',
+                  color: selectedStatus === stat ? '#ff4d85' : '#a0a0a0',
+                  border: `1px solid ${selectedStatus === stat ? '#ff4d85' : '#2a2a32'}`,
+                  cursor: 'pointer', transition: 'all 0.2s ease', fontSize: '0.875rem'
+                }}
+              >
+                {stat}
+              </button>
+            ))}
+          </div>
+        </div>
 
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', 
-                gap: '0.75rem', 
-                marginBottom: '1.5rem', 
-                color: 'var(--text-muted)', 
-                fontSize: '0.85rem' 
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Tv size={14} color="var(--pink-accent)"/> {selectedMovie.platform || '-'}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Calendar size={14} color="var(--pink-accent)"/> {selectedMovie.release_date || '-'}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Clock size={14} color="var(--pink-accent)"/> {selectedMovie.air_day} {selectedMovie.air_time}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><User size={14} color="var(--pink-accent)"/> {selectedMovie.director || '-'}</div>
-              </div>
-
-              {selectedMovie.admin_note && (
-                <div style={{ background: 'rgba(236, 72, 153, 0.08)', borderLeft: '4px solid var(--pink-accent)', padding: '1rem', borderRadius: '0.5rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--pink-accent)', fontWeight: 'bold', marginBottom: '0.4rem', fontSize: '0.9rem' }}><Info size={16} /> ADMIN NOTE</div>
-                  <p style={{ color: 'var(--text-main)', lineHeight: '1.5', whiteSpace: 'pre-line', fontSize: '0.9rem' }}>{selectedMovie.admin_note}</p>
+        {/* Movie Grid */}
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '3rem', color: '#ff4d85' }}>กำลังโหลดข้อมูล...</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem', width: '100%' }}>
+            {filteredMovies.length > 0 ? filteredMovies.map(movie => (
+              <div 
+                key={movie.id} onClick={() => setSelectedMovie(movie)}
+                style={{ backgroundColor: '#1c1c21', borderRadius: '12px', overflow: 'hidden', border: '1px solid #2a2a32', cursor: 'pointer', transition: 'transform 0.2s ease, borderColor 0.2s ease', display: 'flex', flexDirection: 'column' }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-5px)'; e.currentTarget.style.borderColor = '#ff4d85'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = '#2a2a32'; }}
+              >
+                <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%' }}>
+                  <img src={getCoverImage(movie)} alt={movie.title || 'Movie'} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {movie.platform && (
+                    <div style={{ position: 'absolute', top: '8px', left: '8px', backgroundColor: '#e50914', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                      {movie.platform}
+                    </div>
+                  )}
                 </div>
-              )}
+                
+                <div style={{ padding: '1rem', flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {movie.title || 'ไม่มีชื่อเรื่อง'}
+                  </h3>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+                    <span style={{ color: '#a0a0a0', fontSize: '0.875rem' }}>{movie.genre || '-'}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#332a00', color: '#ffd700', padding: '2px 8px', borderRadius: '4px', fontSize: '0.875rem' }}>
+                      <StarIcon /> {movie.rating || '-'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )) : (
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', color: '#a0a0a0' }}>ไม่พบข้อมูลภาพยนตร์ที่คุณค้นหา</div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Modal Details */}
+      {selectedMovie && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '1rem', boxSizing: 'border-box'
+        }} onClick={() => setSelectedMovie(null)}>
+          
+          <div style={{
+            backgroundColor: '#1c1c21', width: '100%', maxWidth: '650px', borderRadius: '12px', overflow: 'hidden', 
+            border: '1px solid #3a3a42', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)', display: 'flex', flexDirection: 'column', maxHeight: '90vh'
+          }} onClick={e => e.stopPropagation()}>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', borderBottom: '1px solid #2a2a32' }}>
+              <h2 style={{ margin: 0, fontSize: '1.25rem' }}>รายละเอียด</h2>
+              <button onClick={() => setSelectedMovie(null)} style={{ background: 'none', border: 'none', color: '#a0a0a0', cursor: 'pointer', padding: '4px' }}><CloseIcon /></button>
+            </div>
+
+            <div style={{ padding: '1.5rem', overflowY: 'auto' }}>
+              
+              {/* Media Section: โชว์วิดีโอถ้ามีลิงก์ youtube_url ถ้าไม่มีให้โชว์รูปปกแทน */}
+              <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%', marginBottom: '1rem', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#000' }}>
+                {getYoutubeId(selectedMovie.youtube_url) ? (
+                  <iframe 
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                    src={`https://www.youtube.com/embed/${getYoutubeId(selectedMovie.youtube_url)}`} 
+                    title={selectedMovie.title}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowFullScreen
+                  ></iframe>
+                ) : (
+                  <img src={getCoverImage(selectedMovie)} alt="Cover" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                )}
+              </div>
+
+              <h1 style={{ fontSize: '1.5rem', margin: '0 0 0.5rem 0', color: '#ff4d85' }}>
+                {selectedMovie.title || 'ไม่มีชื่อเรื่อง'}
+              </h1>
+              
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+                {/* แสดงสถานะ (status) ตรงๆ จาก Database */}
+                {selectedMovie.status && <span style={{ backgroundColor: '#2a2a32', padding: '4px 10px', borderRadius: '4px', fontSize: '0.875rem' }}>{selectedMovie.status}</span>}
+                
+                {selectedMovie.genre && <span style={{ backgroundColor: '#2a2a32', padding: '4px 10px', borderRadius: '4px', fontSize: '0.875rem' }}>{selectedMovie.genre}</span>}
+                {selectedMovie.platform && <span style={{ backgroundColor: '#2a2a32', padding: '4px 10px', borderRadius: '4px', fontSize: '0.875rem' }}>{selectedMovie.platform}</span>}
+                <span style={{ backgroundColor: '#332a00', color: '#ffd700', padding: '4px 10px', borderRadius: '4px', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <StarIcon /> {selectedMovie.rating || '-'}
+                </span>
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', fontSize: '0.9rem', color: '#ccc', marginBottom: '1.5rem', backgroundColor: '#202026', padding: '1rem', borderRadius: '8px' }}>
+                <div><strong style={{ color: '#fff' }}>ผู้กำกับ:</strong> {selectedMovie.director || '-'}</div>
+                <div><strong style={{ color: '#fff' }}>วันฉาย:</strong> {selectedMovie.release_date || '-'}</div>
+                {/* 
+                  หมายเหตุ: ในรายการ Column ไม่มี 'onair_day' หรือ 'day' เลย 
+                  คุณอาจต้องเพิ่ม Column นี้ใน DB หรือไม่ก็ใช้วิธีเก็บวันออนแอร์ไว้ใน admin_note แทน
+                  (อันนี้ผมคงโค้ดไว้ให้ก่อนเผื่อคุณไปเพิ่มทีหลัง)
+                */}
+                <div><strong style={{ color: '#fff' }}>วันออนแอร์:</strong> {selectedMovie.air_day || '-'}</div>
+                <div><strong style={{ color: '#fff' }}>เวลาออนแอร์:</strong> {selectedMovie.air_time || '-'}</div>
+              </div>
+
+              <h4 style={{ margin: '0 0 0.5rem 0', color: '#fff' }}>เรื่องย่อ / Note</h4>
+              <p style={{ color: '#d0d0d0', lineHeight: '1.6', margin: 0, backgroundColor: '#2a2a32', padding: '1rem', borderRadius: '8px', whiteSpace: 'pre-wrap' }}>
+                {/* ดึงข้อมูลจาก admin_note ตรงๆ เลย เพราะนี่คือ Column เดียวที่เก็บเนื้อหานี้ */}
+                {selectedMovie.admin_note || 'ยังไม่มีคำอธิบายสำหรับเรื่องนี้'}
+              </p>
+            </div>
+            
+            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #2a2a32', textAlign: 'right' }}>
+              <button onClick={() => setSelectedMovie(null)} style={{ padding: '0.5rem 1.5rem', backgroundColor: '#3a3a42', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
+                ปิดหน้าต่าง
+              </button>
             </div>
           </div>
         </div>
       )}
+
     </div>
   );
-};
-
-export default Home;
+}

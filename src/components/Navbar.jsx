@@ -39,7 +39,7 @@ const Navbar = ({ session, setSession, theme, toggleTheme }) => {
                 <Settings size={16} /> Admin
               </Link>
               <button onClick={handleLogout} style={{ background: 'transparent', border: '1px solid var(--glass-border)', color: 'var(--text-main)', padding: '0.4rem 1rem', borderRadius: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <LogOut size={16} /> ออกจากระบบ
+                <LogOut size={16} /> Logout
               </button>
             </>
           ) : (
