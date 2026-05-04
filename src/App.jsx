@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Admin from './pages/Admin';
+import Schedule from './pages/Schedule';
+import Donate from './pages/Donate'; // <-- เพิ่มบรรทัดนี้
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import PrivacyPolicy from './pages/PrivacyPolicy';
@@ -45,6 +47,8 @@ function App() {
           <div className="container">
             <Routes>
               <Route path="/" element={<Home />} />
+              <Route path="/schedule" element={<Schedule />} /> {/* <-- เพิ่ม Route ตารางออนแอร์ตรงนี้ */}
+              <Route path="/donate" element={<Donate />} />
               <Route path="/login" element={!session ? <Login setSession={setSession} /> : <Navigate to="/admin" />} />
               <Route 
                 path="/admin" 
