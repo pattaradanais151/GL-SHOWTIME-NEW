@@ -75,7 +75,7 @@ body {
   .movie-grid { grid-template-columns: repeat(1, 1fr); }
   .container { padding: 1.5rem 1rem; }
 }
-@media (min-width: 768px) { .movie-grid { grid-template-columns: repeat(3, 1fr); gap: 1.5rem; } }
+@media (min-width: 900px) { .movie-grid { grid-template-columns: repeat(3, 1fr); gap: 1.5rem; } }
 @media (min-width: 1024px) { .movie-grid { grid-template-columns: repeat(4, 1fr); gap: 1.5rem; } }
 
 /* Movie Card */
