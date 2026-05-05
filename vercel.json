@@ -1,5 +1,32 @@
 {
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000; includeSubDomains; preload"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://snap.licdn.com https://static.cloudflareinsights.com; connect-src 'self' https://aptabase.com https://*.supabase.co https://px.ads.linkedin.com; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;"
+        }
+      ]
+    }
+  ],
   "rewrites": [
+    {
+      "source": "/proxy-analytics/:match*",
+      "destination": "https://your-external-analytics.com/:match*"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
