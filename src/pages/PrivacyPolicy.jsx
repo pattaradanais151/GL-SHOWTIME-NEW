@@ -1,21 +1,25 @@
+import { useLanguage } from '../contexts/LanguageContext';
+
 const PrivacyPolicy = () => {
+  const { t } = useLanguage();
+
   return (
     <div className="animate-fade-in">
       <div className="glass-panel static-page">
-        <h1>Privacy Policy</h1>
-        <p style={{ textAlign: 'center', fontSize: '0.9rem', marginBottom: '2rem' }}>นโยบายความเป็นส่วนตัว - อัปเดตล่าสุด: พฤษภาคม 2026</p>
+        <h1>{t('privacy.title')}</h1>
+        <p style={{ textAlign: 'center', fontSize: '0.9rem', marginBottom: '2rem' }}>{t('privacy.subtitle')}</p>
         
-        <h2>1. ข้อมูลที่เรารวบรวม</h2>
-        <p>เว็บไซต์ GL Showtime TH ไม่มีการเก็บรวบรวมข้อมูลส่วนบุคคลที่สามารถระบุตัวตนได้จากผู้เข้าชมทั่วไป (Guest) สำหรับผู้ดูแลระบบ (Admin) จะมีการเก็บรักษา Session ในเบราว์เซอร์เพื่อใช้ในการเข้าสู่ระบบเท่านั้น</p>
+        <h2>{t('privacy.h1')}</h2>
+        <p>{t('privacy.p1')}</p>
         
-        <h2>2. การนำข้อมูลไปใช้งาน</h2>
-        <p>ข้อมูลภาพยนตร์ ลิงก์ และรายละเอียดต่างๆ ถูกรวบรวมเพื่อการนำเสนอและจัดทำแคตตาล็อกเท่านั้น เราไม่ได้เป็นเจ้าของลิขสิทธิ์ของวิดีโอที่แสดงบนเว็บไซต์ และไม่มีการนำข้อมูลส่วนบุคคลไปขายหรือแจกจ่ายให้บุคคลที่สาม</p>
+        <h2>{t('privacy.h2')}</h2>
+        <p>{t('privacy.p2')}</p>
         
-        <h2>3. คุกกี้ (Cookies) และ Local Storage</h2>
-        <p>เว็บไซต์มีการใช้งาน Local Storage ในเบราว์เซอร์ของคุณเพื่อจดจำสถานะการเข้าสู่ระบบของผู้ดูแลระบบ และป้องกันการสุ่มรหัสผ่าน (Brute-force protection) เท่านั้น ไม่ได้ใช้เพื่อติดตามพฤติกรรมผู้ใช้ภายนอก</p>
+        <h2>{t('privacy.h3')}</h2>
+        <p>{t('privacy.p3')}</p>
 
-        <h2>4. การเชื่อมโยงไปยังเว็บไซต์ภายนอก</h2>
-        <p>เว็บไซต์นี้มีการเชื่อมโยงลิงก์ (Embed/Link) ไปยังแพลตฟอร์มภายนอก เช่น YouTube หรือแพลตฟอร์มสตรีมมิ่งอื่นๆ เราไม่มีส่วนรับผิดชอบต่อนโยบายความเป็นส่วนตัวหรือเนื้อหาของเว็บไซต์เหล่านั้น</p>
+        <h2>{t('privacy.h4')}</h2>
+        <p>{t('privacy.p4')}</p>
       </div>
     </div>
   );

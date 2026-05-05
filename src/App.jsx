@@ -12,9 +12,8 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import License from './pages/License';
+import { LanguageProvider } from './contexts/LanguageContext';
 
-// 3. Initialize Aptabase (ใส่ App Key ของคุณ)
-// จะทำงานเมื่อแอปโหลดขึ้นมา
 init("A-TH-YOUR_APTABASE_KEY");
 
 const ProtectedRoute = ({ children, session }) => {
@@ -41,39 +40,40 @@ function App() {
 
   return (
     <HelmetProvider>
-      <Router>
-        <div className="app-wrapper">
-          {/* 4. ใช้ Helmet จัดการ Header เพิ่มเติมระดับ Component */}
-          <Helmet>
-            <meta name="theme-color" content={theme === 'dark' ? '#0f1015' : '#f0f2f5'} />
-            <meta name="description" content="GL SHOWTIME - Your destination for Girl Love series" />
-          </Helmet>
+      <LanguageProvider>
+        <Router>
+          <div className="app-wrapper">
+            <Helmet>
+              <meta name="theme-color" content={theme === 'dark' ? '#0f1015' : '#f0f2f5'} />
+              <meta name="description" content="GL SHOWTIME - Your destination for Girl Love series" />
+            </Helmet>
 
-          <Navbar session={session} setSession={setSession} theme={theme} toggleTheme={toggleTheme} />
-          
-          <div className="main-content">
-            <div className="container">
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/schedule" element={<Schedule />} />
-                <Route path="/donate" element={<Donate />} />
-                <Route path="/login" element={!session ? <Login setSession={setSession} /> : <Navigate to="/admin" />} />
-                <Route 
-                  path="/admin" 
-                  element={
-                    <ProtectedRoute session={session}>
-                      <Admin />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route path="/privacy" element={<PrivacyPolicy />} />
-                <Route path="/license" element={<License />} />
-              </Routes>
+            <Navbar session={session} setSession={setSession} theme={theme} toggleTheme={toggleTheme} />
+            
+            <div className="main-content">
+              <div className="container">
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/schedule" element={<Schedule />} />
+                  <Route path="/donate" element={<Donate />} />
+                  <Route path="/login" element={!session ? <Login setSession={setSession} /> : <Navigate to="/admin" />} />
+                  <Route 
+                    path="/admin" 
+                    element={
+                      <ProtectedRoute session={session}>
+                        <Admin />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/license" element={<License />} />
+                </Routes>
+              </div>
             </div>
+            <Footer />
           </div>
-          <Footer />
-        </div>
-      </Router>
+        </Router>
+      </LanguageProvider>
     </HelmetProvider>
   );
 }
