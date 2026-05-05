@@ -239,7 +239,7 @@ export default function Home() {
             <div style={{ padding: '1.5rem', overflowY: 'auto' }}>
               <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%', marginBottom: '1rem', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#000' }}>
                 
-                {/* ตรวจสอบว่าเป็นลิงก์ YouTube ที่ฝังได้หรือไม่ ถ้าไม่ใช่ให้แสดงภาพปก+ปุ่มแทน */}
+                {/* ตรวจสอบลิงก์ ถ้าได้ ID แสดง iframe ทันที ถ้าไม่ได้ค่อยแสดงปุ่มกด */}
                 {getYoutubeId(selectedMovie.youtube_url) ? (
                   <iframe 
                     style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
@@ -270,6 +270,7 @@ export default function Home() {
                     )}
                   </>
                 )}
+                
               </div>
 
               <h1 style={{ fontSize: '1.5rem', margin: '0 0 0.5rem 0', color: 'var(--pink-accent)' }}>
