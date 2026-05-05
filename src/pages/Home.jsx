@@ -79,10 +79,12 @@ export default function Home() {
     currentPage * ITEMS_PER_PAGE
   );
 
+  // ฟังก์ชันดึง ID ของ YouTube (ปรับปรุงให้รองรับลิงก์หลายรูปแบบและแม่นยำขึ้น)
   const getYoutubeId = (url) => {
     if (!url) return null;
-    const match = url.match(/[?&]v=([^&]+)/) || url.match(/youtu\.be\/([^?]+)/) || url.match(/embed\/([^?]+)/);
-    return match ? match[1] : null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
   };
 
   const getCoverImage = (movie) => {
@@ -95,6 +97,7 @@ export default function Home() {
   const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>;
   const StarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="#FFD700" viewBox="0 0 16 16"><path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/></svg>;
   const CloseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/></svg>;
+  const PlayIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M11.596 8.697l-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/></svg>;
 
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
@@ -217,6 +220,7 @@ export default function Home() {
         )}
       </div>
 
+      {/* MODAL */}
       {selectedMovie && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0, 0, 0, 0.8)',
@@ -226,27 +230,52 @@ export default function Home() {
             backgroundColor: 'var(--bg-color)', width: '100%', maxWidth: '650px', borderRadius: '12px', overflow: 'hidden', 
             border: '1px solid var(--glass-border)', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)', display: 'flex', flexDirection: 'column', maxHeight: '90vh'
           }} onClick={e => e.stopPropagation()}>
+            
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', borderBottom: '1px solid var(--glass-border)' }}>
               <h2 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-main)' }}>{t('home.details')}</h2>
               <button onClick={() => setSelectedMovie(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}><CloseIcon /></button>
             </div>
+
             <div style={{ padding: '1.5rem', overflowY: 'auto' }}>
               <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%', marginBottom: '1rem', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#000' }}>
+                
+                {/* ตรวจสอบว่าเป็นลิงก์ YouTube ที่ฝังได้หรือไม่ ถ้าไม่ใช่ให้แสดงภาพปก+ปุ่มแทน */}
                 {getYoutubeId(selectedMovie.youtube_url) ? (
                   <iframe 
                     style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
-                    src={`https://www.youtube.com/embed/${getYoutubeId(selectedMovie.youtube_url)}`} 
+                    src={`https://www.youtube.com/embed/${getYoutubeId(selectedMovie.youtube_url)}?autoplay=1`} 
                     title={selectedMovie.title}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                     allowFullScreen
                   ></iframe>
                 ) : (
-                  <img src={getCoverImage(selectedMovie)} alt="Cover" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <>
+                    <img src={getCoverImage(selectedMovie)} alt="Cover" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: selectedMovie.youtube_url ? 0.4 : 1 }} />
+                    {selectedMovie.youtube_url && (
+                      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                        <a 
+                          href={selectedMovie.youtube_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          style={{ 
+                            display: 'inline-flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--pink-accent)', color: 'white', 
+                            padding: '12px 24px', borderRadius: '30px', textDecoration: 'none', fontWeight: 'bold', 
+                            boxShadow: '0 4px 15px rgba(236, 72, 153, 0.4)', transition: 'transform 0.2s'
+                          }}
+                        >
+                          <PlayIcon />
+                          Watch Video
+                        </a>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
+
               <h1 style={{ fontSize: '1.5rem', margin: '0 0 0.5rem 0', color: 'var(--pink-accent)' }}>
                 {selectedMovie.title || t('home.no_title')}
               </h1>
+              
               <div style={{ display: 'flex', gap: '10px', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
                 {selectedMovie.status && <span style={{ backgroundColor: 'var(--item-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', padding: '4px 10px', borderRadius: '4px', fontSize: '0.875rem' }}>{selectedMovie.status}</span>}
                 {selectedMovie.genre && <span style={{ backgroundColor: 'var(--item-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', padding: '4px 10px', borderRadius: '4px', fontSize: '0.875rem' }}>{selectedMovie.genre}</span>}
@@ -255,22 +284,26 @@ export default function Home() {
                   <StarIcon /> {selectedMovie.rating || '-'}
                 </span>
               </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', fontSize: '0.9rem', color: 'var(--text-main)', marginBottom: '1.5rem', backgroundColor: 'var(--input-bg)', border: '1px solid var(--glass-border)', padding: '1rem', borderRadius: '8px' }}>
                 <div><strong style={{ color: 'var(--text-main)' }}>{t('home.director')}</strong> {selectedMovie.director || '-'}</div>
                 <div><strong style={{ color: 'var(--text-main)' }}>{t('home.release_date')}</strong> {selectedMovie.release_date || '-'}</div>
                 <div><strong style={{ color: 'var(--text-main)' }}>{t('home.air_day')}</strong> {selectedMovie.air_day || '-'}</div>
                 <div><strong style={{ color: 'var(--text-main)' }}>{t('home.air_time')}</strong> {selectedMovie.air_time || '-'}</div>
               </div>
+
               <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>{t('home.synopsis')}</h4>
               <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', margin: 0, backgroundColor: 'var(--item-bg)', border: '1px solid var(--glass-border)', padding: '1rem', borderRadius: '8px', whiteSpace: 'pre-wrap' }}>
                 {selectedMovie.admin_note || t('home.no_synopsis')}
               </p>
             </div>
+
             <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--glass-border)', textAlign: 'right', backgroundColor: 'var(--bg-color)' }}>
               <button onClick={() => setSelectedMovie(null)} style={{ padding: '0.5rem 1.5rem', backgroundColor: 'var(--input-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
                 {t('home.close')}
               </button>
             </div>
+
           </div>
         </div>
       )}
