@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useState, useEffect } from 'react';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import { init } from '@aptabase/web';
+import { Analytics } from "@vercel/analytics/react"
 
 import Home from './pages/Home';
 import Login from './pages/Login';
