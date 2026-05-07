@@ -10,6 +10,10 @@ export default function Home() {
   const [filteredMovies, setFilteredMovies] = useState([]);
   const [loading, setLoading] = useState(true);
   
+  // States สำหรับ Hero Slider
+  const [heroMovies, setHeroMovies] = useState([]);
+  const [currentSlide, setCurrentSlide] = useState(0);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('All Genres');
   const [selectedPlatform, setSelectedPlatform] = useState('All Platforms');
@@ -26,12 +30,13 @@ export default function Home() {
   }[language] || { prev: "ก่อนหน้า", next: "ถัดไป", page: "หน้า", of: "จาก" };
 
   const statusOptions = [
-    { id: 'ALL', label: t('home.status_all') },
-    { id: 'ENDED', label: t('home.status_ended') },
-    { id: 'ONAIR', label: t('home.status_onair') },
-    { id: 'SOON', label: t('home.status_soon') }
+    { id: 'ALL', label: t('home.status_all') || 'ทั้งหมด' },
+    { id: 'ENDED', label: t('home.status_ended') || 'Ended' },
+    { id: 'ONAIR', label: t('home.status_onair') || 'On Air' },
+    { id: 'SOON', label: t('home.status_soon') || 'Coming Soon' }
   ];
 
+  // ดึงข้อมูล
   useEffect(() => {
     const fetchMovies = async () => {
       try {
@@ -41,6 +46,18 @@ export default function Home() {
         if (data) {
           setMovies(data);
           setFilteredMovies(data);
+
+          // คัดแยกหนังสำหรับ Hero Slider (หา On Air ก่อน ให้ได้มากสุด 5 เรื่อง)
+          let onAir = data.filter(m => (m.status || '').toLowerCase().includes('on air') || (m.status || '').toLowerCase().includes('standard'));
+          // ถ้า On Air มีไม่ถึง 5 เรื่อง ให้เอาหนังล่าสุดมาเติมให้ครบ
+          if (onAir.length < 5) {
+            const others = data.filter(m => !onAir.includes(m));
+            onAir = [...onAir, ...others.slice(0, 5 - onAir.length)];
+          } else {
+            // สุ่ม 5 เรื่องจาก On Air (หรือจะเอา 5 เรื่องแรกก็ได้ ในที่นี้เอา 5 เรื่องแรกที่ใหม่สุด)
+            onAir = onAir.slice(0, 5);
+          }
+          setHeroMovies(onAir);
         }
       } catch (error) {
         console.error('Error fetching movies:', error.message);
@@ -51,6 +68,16 @@ export default function Home() {
     fetchMovies();
   }, []);
 
+  // ระบบ Auto-slide สำหรับ Hero Banner
+  useEffect(() => {
+    if (heroMovies.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroMovies.length);
+    }, 5000); // เปลี่ยนรูปทุก 5 วินาที
+    return () => clearInterval(interval);
+  }, [heroMovies]);
+
+  // ฟิลเตอร์
   useEffect(() => {
     let result = movies;
     if (searchTerm) {
@@ -79,7 +106,6 @@ export default function Home() {
     currentPage * ITEMS_PER_PAGE
   );
 
-  // ฟังก์ชันดึง ID ของ YouTube (ปรับปรุงให้รองรับลิงก์หลายรูปแบบและแม่นยำขึ้น)
   const getYoutubeId = (url) => {
     if (!url) return null;
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -87,49 +113,93 @@ export default function Home() {
     return (match && match[2].length === 11) ? match[2] : null;
   };
 
+  // เปลี่ยนเป็นดึงรูป MaxRes สำหรับ 16:9
   const getCoverImage = (movie) => {
     if (movie.image_url) return movie.image_url;
     const ytId = getYoutubeId(movie.youtube_url);
     if (ytId) return `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg`;
-    return 'https://via.placeholder.com/400x250/2a2a32/FFFFFF?text=No+Cover';
+    return 'https://via.placeholder.com/1280x720/2a2a32/FFFFFF?text=No+Cover';
   };
 
+  // Icons
   const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>;
-  const StarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="#FFD700" viewBox="0 0 16 16"><path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/></svg>;
+  const StarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/></svg>;
   const CloseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/></svg>;
   const PlayIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M11.596 8.697l-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/></svg>;
 
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
-    window.scrollTo({ top: 300, behavior: 'smooth' });
+    window.scrollTo({ top: document.querySelector('.section-header').offsetTop - 100, behavior: 'smooth' });
   };
 
   return (
-    <div style={{ minHeight: '100vh', color: 'var(--text-main)', fontFamily: 'sans-serif' }}>
-      <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '2rem 1rem', boxSizing: 'border-box' }}>
+    <div className="home-wrapper">
+      <div className="container">
         
-        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <p style={{ color: 'var(--pink-accent)', fontSize: '0.875rem', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Girl Love Collection</p>
-          <h1 style={{ fontSize: '2.5rem', fontWeight: 'bold', margin: '0 0 0.5rem 0' }}>GL Showtime TH</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{t('home.subtitle')}</p>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center' }}>
-            <div style={{ position: 'relative', flex: '1 1 300px', maxWidth: '500px' }}>
-              <div style={{ position: 'absolute', top: '50%', left: '1rem', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}><SearchIcon /></div>
-              <input type="text" placeholder={t('home.search')} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.5rem', backgroundColor: 'var(--input-bg)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'var(--text-main)', outline: 'none', boxSizing: 'border-box' }}/>
+        {/* =======================================
+            HERO SECTION (SLIDER iQIYI STYLE)
+        ======================================= */}
+        {!loading && heroMovies.length > 0 && (
+          <div className="hero-slider-container">
+            {heroMovies.map((movie, index) => (
+              <div 
+                key={movie.id} 
+                className={`hero-slide ${index === currentSlide ? 'active' : ''}`}
+                onClick={() => setSelectedMovie(movie)}
+              >
+                <img src={getCoverImage(movie)} alt={movie.title} className="hero-slide-bg" />
+                <div className="hero-slide-overlay"></div>
+                <div className="hero-slide-content">
+                  <span className="hero-badge">{movie.status || 'ON AIR'}</span>
+                  <h1>{movie.title}</h1>
+                  <p className="hero-genre">{movie.genre} {movie.rating ? `• ${movie.rating}` : ''}</p>
+                  <p className="hero-synopsis">{movie.admin_note ? movie.admin_note.substring(0, 150) + '...' : ''}</p>
+                  <button className="cta-btn">
+                    <PlayIcon /> ดูข้อมูลเพิ่มเติม
+                  </button>
+                </div>
+              </div>
+            ))}
+            
+            {/* Dots Indicator */}
+            <div className="hero-indicators">
+              {heroMovies.map((_, index) => (
+                <button 
+                  key={index} 
+                  className={`indicator-dot ${index === currentSlide ? 'active' : ''}`}
+                  onClick={(e) => { e.stopPropagation(); setCurrentSlide(index); }}
+                />
+              ))}
             </div>
-            <select value={selectedGenre} onChange={(e) => setSelectedGenre(e.target.value)} style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--input-bg)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'var(--text-main)', outline: 'none', cursor: 'pointer', flex: '1 1 150px' }}>
-              <option value="All Genres">{t('home.all_genres')}</option>
+          </div>
+        )}
+
+        {/* =======================================
+            FILTERS SECTION
+        ======================================= */}
+        <div className="filter-section">
+          <div className="search-wrapper-home">
+            <div className="search-icon"><SearchIcon /></div>
+            <input 
+              type="text" 
+              placeholder={t('home.search') || "ค้นหาชื่อภาพยนตร์..."} 
+              value={searchTerm} 
+              onChange={(e) => setSearchTerm(e.target.value)} 
+              className="search-input-home"
+            />
+          </div>
+          
+          <div className="filter-dropdowns">
+            <select value={selectedGenre} onChange={(e) => setSelectedGenre(e.target.value)} className="filter-select">
+              <option value="All Genres">{t('home.all_genres') || 'All Genres'}</option>
               <option>Drama Romance</option>
               <option>Fantasy</option>
               <option>Romance</option>
               <option>Drama</option>
               <option>Comedy</option>
             </select>
-            <select value={selectedPlatform} onChange={(e) => setSelectedPlatform(e.target.value)} style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--input-bg)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'var(--text-main)', outline: 'none', cursor: 'pointer', flex: '1 1 150px' }}>
-              <option value="All Platforms">{t('home.all_platforms')}</option>
+            <select value={selectedPlatform} onChange={(e) => setSelectedPlatform(e.target.value)} className="filter-select">
+              <option value="All Platforms">{t('home.all_platforms') || 'All Platforms'}</option>
               <option>oneD</option>
               <option>iQIYI</option>
               <option>CH3 Plus</option>
@@ -138,17 +208,12 @@ export default function Home() {
             </select>
           </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+          <div className="status-filters">
             {statusOptions.map(stat => (
               <button 
-                key={stat.id} onClick={() => setSelectedStatus(stat.id)}
-                style={{
-                  padding: '0.5rem 1.5rem', borderRadius: '99px',
-                  backgroundColor: selectedStatus === stat.id ? 'rgba(236, 72, 153, 0.1)' : 'var(--input-bg)',
-                  color: selectedStatus === stat.id ? 'var(--pink-accent)' : 'var(--text-muted)',
-                  border: `1px solid ${selectedStatus === stat.id ? 'var(--pink-accent)' : 'var(--glass-border)'}`,
-                  cursor: 'pointer', transition: 'all 0.2s ease', fontSize: '0.875rem'
-                }}
+                key={stat.id} 
+                onClick={() => setSelectedStatus(stat.id)}
+                className={`status-btn ${selectedStatus === stat.id ? 'active' : ''}`}
               >
                 {stat.label}
               </button>
@@ -156,62 +221,61 @@ export default function Home() {
           </div>
         </div>
 
+        {/* =======================================
+            NOW SHOWING GRID (16:9)
+        ======================================= */}
+        <div className="section-header">
+          <h2>Now Showing</h2>
+        </div>
+
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--pink-accent)' }}>{t('home.loading')}</div>
+          <div className="loading-state">{t('home.loading') || 'กำลังโหลด...'}</div>
         ) : (
           <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem', width: '100%' }}>
+            <div className="movie-poster-grid">
               {paginatedMovies.length > 0 ? paginatedMovies.map(movie => (
-                <div 
-                  key={movie.id} onClick={() => setSelectedMovie(movie)}
-                  style={{ backgroundColor: 'var(--item-bg)', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--glass-border)', cursor: 'pointer', transition: 'transform 0.2s ease, borderColor 0.2s ease', display: 'flex', flexDirection: 'column' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-5px)'; e.currentTarget.style.borderColor = 'var(--pink-accent)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = 'var(--glass-border)'; }}
-                >
-                  <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%' }}>
-                    <img src={getCoverImage(movie)} alt={movie.title || 'Movie'} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                <div key={movie.id} className="movie-poster-card" onClick={() => setSelectedMovie(movie)}>
+                  <div className="card-image-container">
+                    <img src={getCoverImage(movie)} alt={movie.title || 'Movie'} className="card-image" />
+                    
+                    {/* ข้อมูลทับบนรูป */}
+                    <div className="rating-overlay">
+                      <StarIcon /> {movie.rating || '-'}
+                    </div>
                     {movie.platform && (
-                      <div style={{ position: 'absolute', top: '8px', left: '8px', backgroundColor: '#e50914', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                      <div className="platform-tag">
                         {movie.platform}
                       </div>
                     )}
                   </div>
-                  <div style={{ padding: '1rem', flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                    <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-main)' }}>
-                      {movie.title || t('home.no_title')}
-                    </h3>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{movie.genre || '-'}</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: 'rgba(250, 204, 21, 0.1)', color: '#eab308', padding: '2px 8px', borderRadius: '4px', fontSize: '0.875rem', fontWeight: 'bold' }}>
-                        <StarIcon /> {movie.rating || '-'}
-                      </div>
+                  
+                  <div className="card-content">
+                    <h3 className="card-title" title={movie.title}>{movie.title || t('home.no_title')}</h3>
+                    <div className="card-meta">
+                       <span className="card-genre">{movie.genre || 'N/A'}</span>
                     </div>
+                    <button className="card-action-btn">
+                      More Details
+                    </button>
                   </div>
                 </div>
               )) : (
-                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>{t('home.no_data')}</div>
+                <div className="empty-state">{t('home.no_data') || 'ไม่พบข้อมูล'}</div>
               )}
             </div>
 
+            {/* =======================================
+                PAGINATION
+            ======================================= */}
             {totalPages > 1 && (
-              <div className="pagination" style={{ marginTop: '3rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem' }}>
-                <button 
-                  className="page-btn" 
-                  disabled={currentPage === 1} 
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  style={{ background: 'var(--input-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', padding: '0.5rem 1rem', borderRadius: '0.5rem', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', opacity: currentPage === 1 ? 0.3 : 1 }}
-                >
+              <div className="pagination">
+                <button className="page-btn" disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)}>
                   &laquo; {tPage.prev}
                 </button>
-                <span className="page-info" style={{ color: 'var(--text-muted)' }}>
+                <span className="page-info">
                   {tPage.page} {currentPage} {tPage.of} {totalPages}
                 </span>
-                <button 
-                  className="page-btn" 
-                  disabled={currentPage === totalPages} 
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  style={{ background: 'var(--input-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', padding: '0.5rem 1rem', borderRadius: '0.5rem', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', opacity: currentPage === totalPages ? 0.3 : 1 }}
-                >
+                <button className="page-btn" disabled={currentPage === totalPages} onClick={() => handlePageChange(currentPage + 1)}>
                   {tPage.next} &raquo;
                 </button>
               </div>
@@ -220,29 +284,22 @@ export default function Home() {
         )}
       </div>
 
-      {/* MODAL */}
+      {/* =======================================
+          MODAL
+      ======================================= */}
       {selectedMovie && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '1rem', boxSizing: 'border-box'
-        }} onClick={() => setSelectedMovie(null)}>
-          <div style={{
-            backgroundColor: 'var(--bg-color)', width: '100%', maxWidth: '650px', borderRadius: '12px', overflow: 'hidden', 
-            border: '1px solid var(--glass-border)', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)', display: 'flex', flexDirection: 'column', maxHeight: '90vh'
-          }} onClick={e => e.stopPropagation()}>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', borderBottom: '1px solid var(--glass-border)' }}>
-              <h2 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-main)' }}>{t('home.details')}</h2>
-              <button onClick={() => setSelectedMovie(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}><CloseIcon /></button>
+        <div className="modal-overlay" onClick={() => setSelectedMovie(null)}>
+          <div className="modal-content-movie" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{t('home.details') || 'รายละเอียด'}</h2>
+              <button className="modal-close-btn" onClick={() => setSelectedMovie(null)}><CloseIcon /></button>
             </div>
 
-            <div style={{ padding: '1.5rem', overflowY: 'auto' }}>
-              <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%', marginBottom: '1rem', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#000' }}>
-                
-                {/* ตรวจสอบลิงก์ ถ้าได้ ID แสดง iframe ทันที ถ้าไม่ได้ค่อยแสดงปุ่มกด */}
+            <div className="modal-body">
+              <div className="modal-video-container">
                 {getYoutubeId(selectedMovie.youtube_url) ? (
                   <iframe 
-                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                    className="modal-iframe"
                     src={`https://www.youtube.com/embed/${getYoutubeId(selectedMovie.youtube_url)}?autoplay=1`} 
                     title={selectedMovie.title}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
@@ -250,61 +307,43 @@ export default function Home() {
                   ></iframe>
                 ) : (
                   <>
-                    <img src={getCoverImage(selectedMovie)} alt="Cover" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: selectedMovie.youtube_url ? 0.4 : 1 }} />
+                    <img src={getCoverImage(selectedMovie)} alt="Cover" className="modal-cover-img" style={{ opacity: selectedMovie.youtube_url ? 0.4 : 1 }} />
                     {selectedMovie.youtube_url && (
-                      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-                        <a 
-                          href={selectedMovie.youtube_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          style={{ 
-                            display: 'inline-flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--pink-accent)', color: 'white', 
-                            padding: '12px 24px', borderRadius: '30px', textDecoration: 'none', fontWeight: 'bold', 
-                            boxShadow: '0 4px 15px rgba(236, 72, 153, 0.4)', transition: 'transform 0.2s'
-                          }}
-                        >
-                          <PlayIcon />
-                          Watch Video
+                      <div className="modal-play-btn-wrapper">
+                        <a href={selectedMovie.youtube_url} target="_blank" rel="noopener noreferrer" className="modal-play-btn">
+                          <PlayIcon /> Watch Video
                         </a>
                       </div>
                     )}
                   </>
                 )}
-                
               </div>
 
-              <h1 style={{ fontSize: '1.5rem', margin: '0 0 0.5rem 0', color: 'var(--pink-accent)' }}>
-                {selectedMovie.title || t('home.no_title')}
-              </h1>
+              <h1 className="modal-movie-title">{selectedMovie.title || t('home.no_title')}</h1>
               
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-                {selectedMovie.status && <span style={{ backgroundColor: 'var(--item-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', padding: '4px 10px', borderRadius: '4px', fontSize: '0.875rem' }}>{selectedMovie.status}</span>}
-                {selectedMovie.genre && <span style={{ backgroundColor: 'var(--item-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', padding: '4px 10px', borderRadius: '4px', fontSize: '0.875rem' }}>{selectedMovie.genre}</span>}
-                {selectedMovie.platform && <span style={{ backgroundColor: 'var(--item-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', padding: '4px 10px', borderRadius: '4px', fontSize: '0.875rem' }}>{selectedMovie.platform}</span>}
-                <span style={{ backgroundColor: 'rgba(250, 204, 21, 0.1)', color: '#eab308', padding: '4px 10px', borderRadius: '4px', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}>
-                  <StarIcon /> {selectedMovie.rating || '-'}
-                </span>
+              <div className="modal-tags">
+                {selectedMovie.status && <span className="modal-tag">{selectedMovie.status}</span>}
+                {selectedMovie.genre && <span className="modal-tag">{selectedMovie.genre}</span>}
+                {selectedMovie.platform && <span className="modal-tag">{selectedMovie.platform}</span>}
+                <span className="modal-tag highlight"><StarIcon /> {selectedMovie.rating || '-'}</span>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', fontSize: '0.9rem', color: 'var(--text-main)', marginBottom: '1.5rem', backgroundColor: 'var(--input-bg)', border: '1px solid var(--glass-border)', padding: '1rem', borderRadius: '8px' }}>
-                <div><strong style={{ color: 'var(--text-main)' }}>{t('home.director')}</strong> {selectedMovie.director || '-'}</div>
-                <div><strong style={{ color: 'var(--text-main)' }}>{t('home.release_date')}</strong> {selectedMovie.release_date || '-'}</div>
-                <div><strong style={{ color: 'var(--text-main)' }}>{t('home.air_day')}</strong> {selectedMovie.air_day || '-'}</div>
-                <div><strong style={{ color: 'var(--text-main)' }}>{t('home.air_time')}</strong> {selectedMovie.air_time || '-'}</div>
+              <div className="modal-info-grid">
+                <div><strong>{t('home.director') || 'Director'}</strong> {selectedMovie.director || '-'}</div>
+                <div><strong>{t('home.release_date') || 'Release'}</strong> {selectedMovie.release_date || '-'}</div>
+                <div><strong>{t('home.air_day') || 'Air Day'}</strong> {selectedMovie.air_day || '-'}</div>
+                <div><strong>{t('home.air_time') || 'Air Time'}</strong> {selectedMovie.air_time || '-'}</div>
               </div>
 
-              <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>{t('home.synopsis')}</h4>
-              <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', margin: 0, backgroundColor: 'var(--item-bg)', border: '1px solid var(--glass-border)', padding: '1rem', borderRadius: '8px', whiteSpace: 'pre-wrap' }}>
-                {selectedMovie.admin_note || t('home.no_synopsis')}
-              </p>
+              <h4>{t('home.synopsis') || 'Synopsis'}</h4>
+              <p className="modal-synopsis">{selectedMovie.admin_note || t('home.no_synopsis') || '-'}</p>
             </div>
 
-            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--glass-border)', textAlign: 'right', backgroundColor: 'var(--bg-color)' }}>
-              <button onClick={() => setSelectedMovie(null)} style={{ padding: '0.5rem 1.5rem', backgroundColor: 'var(--input-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
-                {t('home.close')}
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => setSelectedMovie(null)}>
+                {t('home.close') || 'Close'}
               </button>
             </div>
-
           </div>
         </div>
       )}
