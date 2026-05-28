@@ -24,6 +24,7 @@ const Navbar = ({ session, setSession, theme, toggleTheme }) => {
         {/* เมนูนำทาง (ตรงกลาง - บนมือถือจะตกลงมาอยู่บรรทัดล่าง) */}
         <div className="nav-links">
           <Link to="/"><Film size={18} /> <span className="link-text">{t('nav.home')}</span></Link>
+          <Link to="/community" className="nav-link">Community</Link>
           <Link to="/schedule"><CalendarDays size={18} /> <span className="link-text">{t('nav.schedule')}</span></Link>
           <Link to="/donate" className="donate-link"><Heart size={18} /> <span className="link-text">{t('nav.donate')}</span></Link>
         </div>

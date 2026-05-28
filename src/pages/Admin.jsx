@@ -4,13 +4,14 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import { 
   Film, Plus, Edit, Trash2, Users, Activity, KeyRound, 
-  Save, AlertCircle, CheckCircle, Search, X, ChevronLeft, ChevronRight, Info, AlertTriangle, Lock
+  Save, AlertCircle, CheckCircle, Search, X, ChevronLeft, ChevronRight, Info, AlertTriangle, Lock, MessageSquare
 } from 'lucide-react';
 
 const adminTranslations = {
   th: {
     tab_add: "เพิ่มภาพยนตร์", tab_editing: "กำลังแก้ไขหนัง...", tab_manage: "จัดการหนัง",
     tab_users: "จัดการแอดมิน", tab_logs: "System Logs", tab_settings: "เปลี่ยนรหัสผ่านตัวเอง",
+    tab_community: "จัดการสมาชิก", tab_posts: "จัดการโพสต์", // เพิ่มแท็บใหม่
     form_edit_title: "แก้ไขข้อมูลภาพยนตร์", form_add_title: "เพิ่มภาพยนตร์ใหม่",
     status: "สถานะภาพยนตร์ *", status_ended: "Ended (จบแล้ว)", status_onair: "On Air (กำลังออนแอร์)", status_soon: "Coming Soon (เร็วๆ นี้)",
     title_req: "ชื่อเรื่อง *", title_ph: "ชื่อภาพยนตร์หรือซีรีส์", rating: "คะแนน", release_date: "วันฉาย",
@@ -38,11 +39,14 @@ const adminTranslations = {
     msg_err_change_self: "กรุณาไปที่แท็บ 'เปลี่ยนรหัสผ่านตัวเอง' เพื่อเปลี่ยนรหัสของตัวเอง", msg_prompt_new_pass: "ตั้งรหัสผ่านใหม่ให้กับ {user} (อย่างน้อย 6 ตัวอักษร):",
     msg_change_pass_success: "เปลี่ยนรหัสผ่านให้ {user} สำเร็จ!", msg_err_pass_len: "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร",
     msg_err_pass_mismatch: "รหัสผ่านใหม่และการยืนยันไม่ตรงกัน!", msg_err_wrong_pass: "Username หรือ รหัสผ่านเดิมไม่ถูกต้อง!",
-    msg_change_own_pass_success: "เปลี่ยนรหัสผ่านสำเร็จ!", msg_err_change_pass: "เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน"
+    msg_change_own_pass_success: "เปลี่ยนรหัสผ่านสำเร็จ!", msg_err_change_pass: "เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน",
+    c_confirm_kick: "ยืนยันการลบผู้ใช้งาน", c_kick_warn: "โพสต์ทั้งหมดของผู้ใช้นี้ในคอมมูนิตี้จะถูกลบไปด้วย", c_kick_success: "ลบผู้ใช้สำเร็จ", c_empty: "ยังไม่มีผู้ใช้งานคอมมูนิตี้",
+    p_list: "รายการโพสต์รอตรวจสอบและเผยแพร่", p_author: "ผู้โพสต์", p_content: "เนื้อหา/ข้อความ", p_status: "สถานะ", p_action: "จัดการ"
   },
   en: {
     tab_add: "Add Movie", tab_editing: "Editing Movie...", tab_manage: "Manage Movies",
     tab_users: "Manage Admins", tab_logs: "System Logs", tab_settings: "Change My Password",
+    tab_community: "Manage Members", tab_posts: "Manage Posts", // เพิ่มใหม่
     form_edit_title: "Edit Movie Details", form_add_title: "Add New Movie",
     status: "Movie Status *", status_ended: "Ended", status_onair: "On Air", status_soon: "Coming Soon",
     title_req: "Title *", title_ph: "Movie or Series Title", rating: "Rating", release_date: "Release Date",
@@ -70,12 +74,14 @@ const adminTranslations = {
     msg_err_change_self: "Please use the 'Change My Password' tab to change your own password", msg_prompt_new_pass: "Set new password for {user} (min 6 chars):",
     msg_change_pass_success: "Password changed for {user} successfully!", msg_err_pass_len: "Password must be at least 6 characters",
     msg_err_pass_mismatch: "New password and confirmation do not match!", msg_err_wrong_pass: "Invalid username or current password!",
-    msg_change_own_pass_success: "Password changed successfully!", msg_err_change_pass: "Error changing password"
+    msg_change_own_pass_success: "Password changed successfully!", msg_err_change_pass: "Error changing password",
+    c_confirm_kick: "Are you sure to delete", c_kick_warn: "All posts from this user will be deleted.", c_kick_success: "User deleted successfully", c_empty: "No community users yet",
+    p_list: "Community Posts", p_author: "Author", p_content: "Content", p_status: "Status", p_action: "Action"
   }
 };
 
 const ITEMS_PER_PAGE = 10;
-const SESSION_TIMEOUT_MS = 3 * 60 * 1000; // 3 นาที (หน่วยเป็นมิลลิวินาที)
+const SESSION_TIMEOUT_MS = 3 * 60 * 1000; // 3 นาที
 
 const Admin = () => {
   const { language } = useLanguage();
@@ -90,14 +96,20 @@ const Admin = () => {
   const [adminsList, setAdminsList] = useState([]);
   const [logsList, setLogsList] = useState([]);
   
+  const [communityUsers, setCommunityUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  
+  // State สำหรับ Community Posts (แท็บใหม่)
+  const [communityPosts, setCommunityPosts] = useState([]);
+  const [loadingPosts, setLoadingPosts] = useState(false);
+
   const [selectedLogs, setSelectedLogs] = useState([]);
   
   const [activeTab, setActiveTab] = useState('add');
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [loading, setLoading] = useState(false);
   
-  // Custom Modals States
-  const [showConfirmModal, setShowConfirmModal] = useState(false); // สำหรับเช็ครายละเอียดฟอร์มเพิ่ม/แก้หนัง
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [customAlert, setCustomAlert] = useState({ isOpen: false, title: '', message: '', type: 'danger', onConfirm: null });
   const [promptModal, setPromptModal] = useState({ isOpen: false, targetId: null, targetUsername: '', newPassword: '' });
 
@@ -119,26 +131,21 @@ const Admin = () => {
   ];
 
   // ==========================================
-  // SESSION TIMEOUT LOGIC (3 นาที)
+  // SESSION TIMEOUT LOGIC
   // ==========================================
   useEffect(() => {
     let timeoutId;
-
     const resetTimer = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-        // เมื่อครบ 3 นาที จะเคลียร์ Session และเด้งออก
         localStorage.removeItem('isAdmin');
         alert('เซสชันหมดอายุเนื่องจากไม่มีการใช้งานเป็นเวลา 3 นาที ระบบได้ทำการลงชื่อออกอัตโนมัติเพื่อความปลอดภัย');
         navigate('/login'); 
       }, SESSION_TIMEOUT_MS);
     };
 
-    // ดักจับการกระทำต่างๆ ของ User บนหน้าจอ
     const events = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll'];
     events.forEach(event => window.addEventListener(event, resetTimer));
-
-    // เริ่มจับเวลาครั้งแรก
     resetTimer();
 
     return () => {
@@ -158,6 +165,12 @@ const Admin = () => {
     fetchLogs();
   }, []);
 
+  // โหลด Data ตามแท็บ
+  useEffect(() => {
+    if (activeTab === 'community') fetchCommunityUsers();
+    if (activeTab === 'posts') fetchCommunityPostsAdmin();
+  }, [activeTab]);
+
   const fetchMovies = async () => {
     const { data } = await supabase.from('movies').select('*').order('created_at', { ascending: false });
     if (data) setMovies(data);
@@ -171,6 +184,25 @@ const Admin = () => {
   const fetchLogs = async () => {
     const { data } = await supabase.from('logs').select('*').order('created_at', { ascending: false });
     if (data) setLogsList(data);
+  };
+
+  const fetchCommunityUsers = async () => {
+    setLoadingUsers(true);
+    const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+    if (!error) setCommunityUsers(data);
+    setLoadingUsers(false);
+  };
+
+  // ดึงโพสต์ Community ทั้งหมด (เรียง pending ไว้ด้านบน)
+  const fetchCommunityPostsAdmin = async () => {
+    setLoadingPosts(true);
+    const { data, error } = await supabase
+      .from('community_posts')
+      .select('*, profiles(username)')
+      .order('status', { ascending: false }) 
+      .order('created_at', { ascending: false });
+    if (!error) setCommunityPosts(data);
+    setLoadingPosts(false);
   };
 
   const writeLog = async (action, target, details) => {
@@ -405,6 +437,58 @@ const Admin = () => {
     }
   };
 
+  // Community User Handlers 
+  const handleDeleteCommunityUser = async (userId, username) => {
+    setCustomAlert({
+      isOpen: true,
+      type: 'danger',
+      title: tAd('c_confirm_kick') + ` "${username}"?`,
+      message: tAd('c_kick_warn'),
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase.rpc('delete_user_by_admin', { target_user_id: userId });
+          if (error) throw error;
+          showToast(tAd('c_kick_success'), 'success');
+          fetchCommunityUsers();
+          writeLog('DELETE_USER', username, `Deleted community user: ${username}`);
+        } catch (error) {
+          showToast(tAd('msg_err') + error.message, 'error');
+        }
+      }
+    });
+  };
+
+  // Community Post Handlers (จัดการโพสต์)
+  const handleApprovePost = async (id) => {
+    const { error } = await supabase.from('community_posts').update({ status: 'approved' }).eq('id', id);
+    if (!error) {
+      showToast('อนุมัติโพสต์เรียบร้อย', 'success');
+      recordLog('APPROVE_POST', `Post ID: ${id}`, 'Approved community post');
+      fetchCommunityPostsAdmin();
+    } else {
+      showToast(tAd('msg_err') + error.message, 'error');
+    }
+  };
+
+  const handleDeletePost = async (id) => {
+    setCustomAlert({
+      isOpen: true,
+      type: 'danger',
+      title: 'ยืนยันการลบโพสต์',
+      message: 'คุณแน่ใจหรือไม่ที่จะลบโพสต์นี้ออกจากคอมมูนิตี้?',
+      onConfirm: async () => {
+        const { error } = await supabase.from('community_posts').delete().eq('id', id);
+        if (!error) {
+          showToast('ลบโพสต์เรียบร้อย', 'success');
+          recordLog('DELETE_POST', `Post ID: ${id}`, 'Deleted community post');
+          fetchCommunityPostsAdmin();
+        } else {
+          showToast(tAd('msg_err') + error.message, 'error');
+        }
+      }
+    });
+  };
+
   // Pagination Logic
   const filteredAdminMovies = useMemo(() => {
     return movies.filter(m => m.title.toLowerCase().includes(adminSearch.toLowerCase()));
@@ -539,6 +623,17 @@ const Admin = () => {
             <button className={`admin-tab ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>
               <Users size={18} /> {tAd('tab_users')}
             </button>
+            
+            {/* แท็บ Community Users */}
+            <button className={`admin-tab ${activeTab === 'community' ? 'active' : ''}`} onClick={() => setActiveTab('community')}>
+              <Users size={18} color="#8b5cf6" /> <span style={{color: '#8b5cf6'}}>{tAd('tab_community')}</span>
+            </button>
+
+            {/* 🟢 แท็บ Manage Posts (จัดการโพสต์) ที่เพิ่มมาใหม่ */}
+            <button className={`admin-tab ${activeTab === 'posts' ? 'active' : ''}`} onClick={() => setActiveTab('posts')}>
+              <MessageSquare size={18} color="#ff2a7a" /> <span style={{color: 'var(--pink-accent)'}}>{tAd('tab_posts')}</span>
+            </button>
+
             <button className={`admin-tab ${activeTab === 'logs' ? 'active' : ''}`} onClick={() => setActiveTab('logs')}>
               <Activity size={18} /> {tAd('tab_logs')}
             </button>
@@ -684,7 +779,123 @@ const Admin = () => {
         )}
 
         {/* =======================================
-            TAB 4: LOGS
+            TAB 4: COMMUNITY USERS
+        ======================================= */}
+        {activeTab === 'community' && (
+          <div className="admin-card animation-fade-in">
+            <h2 style={{ marginBottom: '20px' }}>{tAd('c_list')}</h2>
+            
+            {loadingUsers ? (
+              <p style={{ color: '#aaa', textAlign: 'center', padding: '20px' }}>กำลังโหลดข้อมูล...</p>
+            ) : (
+              <div className="table-responsive" style={{ overflowX: 'auto' }}>
+                <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ background: '#121212', borderBottom: '2px solid #333' }}>
+                      <th style={{ padding: '12px', color: '#ccc' }}>{tAd('c_name')}</th>
+                      <th style={{ padding: '12px', color: '#ccc' }}>{tAd('c_fullname')}</th>
+                      <th style={{ padding: '12px', color: '#ccc' }}>{tAd('c_email')}</th>
+                      <th style={{ padding: '12px', color: '#ccc' }}>{tAd('c_phone')}</th>
+                      <th style={{ padding: '12px', color: '#ccc' }}>{tAd('c_date')}</th>
+                      <th style={{ padding: '12px', color: '#ccc', textAlign: 'right' }}>{tAd('c_kick')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {communityUsers.length > 0 ? (
+                      communityUsers.map((user) => (
+                        <tr key={user.id} style={{ borderBottom: '1px solid #222' }}>
+                          <td style={{ padding: '12px', fontWeight: 'bold', color: '#8b5cf6' }}>{user.username}</td>
+                          <td style={{ padding: '12px' }}>{user.full_name}</td>
+                          <td style={{ padding: '12px' }}>{user.email || '-'}</td>
+                          <td style={{ padding: '12px' }}>{user.phone_number || '-'}</td>
+                          <td style={{ padding: '12px' }}>{new Date(user.created_at).toLocaleDateString('th-TH')}</td>
+                          <td style={{ padding: '12px', textAlign: 'right' }}>
+                            <button 
+                              onClick={() => handleDeleteCommunityUser(user.id, user.username)}
+                              className="btn-outline danger"
+                              style={{ padding: '6px 12px' }}
+                            >
+                              <Trash2 size={14} style={{ marginRight: '4px', display: 'inline' }}/> เตะออก
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#888' }}>
+                          <AlertCircle size={32} style={{ margin: '0 auto 10px', display: 'block', opacity: 0.5 }} />
+                          {tAd('c_empty')}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* =======================================
+            🟢 TAB 5: MANAGE POSTS (จัดการโพสต์ที่รออนุมัติ) 🟢
+        ======================================= */}
+        {activeTab === 'posts' && (
+          <div className="admin-card animation-fade-in posts-panel">
+            <h2 style={{ marginBottom: '20px' }}>{tAd('p_list')}</h2>
+            
+            {loadingPosts ? (
+              <p style={{ color: '#aaa', textAlign: 'center', padding: '20px' }}>กำลังโหลดข้อมูล...</p>
+            ) : (
+              <div className="table-responsive" style={{ overflowX: 'auto' }}>
+                <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ background: '#121212', borderBottom: '2px solid #333' }}>
+                      <th style={{ padding: '12px', color: '#ccc' }}>{tAd('p_author')}</th>
+                      <th style={{ padding: '12px', color: '#ccc' }}>{tAd('p_content')}</th>
+                      <th style={{ padding: '12px', color: '#ccc' }}>รูปภาพ</th>
+                      <th style={{ padding: '12px', color: '#ccc' }}>{tAd('p_status')}</th>
+                      <th style={{ padding: '12px', color: '#ccc', textAlign: 'right' }}>{tAd('p_action')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {communityPosts.length > 0 ? communityPosts.map(post => (
+                      <tr key={post.id} style={{ borderBottom: '1px solid #222' }}>
+                        <td style={{ padding: '12px', color: '#ff2a7a', fontWeight: 'bold' }}>{post.profiles?.username || post.creator_name || 'แอดมิน'}</td>
+                        <td style={{ padding: '12px', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{post.content || '-'}</td>
+                        <td style={{ padding: '12px' }}>
+                          {post.image_url ? <a href={post.image_url} target="_blank" rel="noreferrer" style={{color: '#3b82f6', textDecoration: 'underline'}}>ดูรูป</a> : '-'}
+                        </td>
+                        <td style={{ padding: '12px' }}>
+                          <span style={{ 
+                            padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold',
+                            background: post.status === 'pending' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                            color: post.status === 'pending' ? '#f59e0b' : '#10b981',
+                            border: `1px solid ${post.status === 'pending' ? '#f59e0b' : '#10b981'}`
+                          }}>
+                            {post.status.toUpperCase()}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px', textAlign: 'right', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          {post.status === 'pending' && (
+                            <button onClick={() => handleApprovePost(post.id)} className="btn-outline" style={{ padding: '4px 8px', color: '#10b981', borderColor: '#10b981' }}>อนุมัติ</button>
+                          )}
+                          <button onClick={() => handleDeletePost(post.id)} className="btn-outline danger" style={{ padding: '4px 8px' }}>ลบ</button>
+                        </td>
+                      </tr>
+                    )) : (
+                      <tr><td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#888' }}>ไม่มีโพสต์ในระบบ</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* =======================================
+            TAB 6: LOGS
+        ======================================= */}
+        {/* =======================================
+            TAB 6: LOGS (แก้ไขเรื่องตัวแปร Pagination แล้ว)
         ======================================= */}
         {activeTab === 'logs' && (
           <div className="admin-card animation-fade-in" style={{ padding: 0, overflow: 'hidden' }}>
@@ -740,6 +951,7 @@ const Admin = () => {
               </table>
             </div>
 
+            {/* Pagination สำหรับ Logs (แก้ไขแล้ว ใช้ totalLogPages) */}
             {totalLogPages > 1 && (
               <div className="admin-pagination" style={{ padding: '1.5rem', borderTop: '1px solid var(--glass-border)', margin: 0 }}>
                 <button disabled={logPage === 1} onClick={() => setLogPage(p => p - 1)}><ChevronLeft size={16}/> {tAd('btn_prev')}</button>
@@ -751,7 +963,7 @@ const Admin = () => {
         )}
 
         {/* =======================================
-            TAB 5: SETTINGS (PASSWORD)
+            TAB 7: SETTINGS (PASSWORD)
         ======================================= */}
         {activeTab === 'settings' && (
           <div className="admin-card animation-fade-in" style={{ maxWidth: '500px', margin: '0 auto' }}>
