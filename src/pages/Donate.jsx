@@ -5,8 +5,8 @@ import { useLanguage } from '../contexts/LanguageContext';
 
 const Donate = () => {
   const { t } = useLanguage();
-  const bankAccount = "5140531208";
-  const formattedAccount = "514-053-1208";
+  const bankAccount = "0000000000";
+  const formattedAccount = "0000000000";
   const bankName = "ธนาคารกรุงไทย";
   const lineOA = "@186utlil";
 
