@@ -10,6 +10,12 @@ import { LanguageProvider } from './contexts/LanguageContext';
 import { supabase } from './utils/supabase';
 
 // ==========================================
+// PWA Components (นำเข้า Component สำหรับแจ้งเตือน PWA)
+// ==========================================
+import OfflineFallback from './components/OfflineFallback';
+import ReloadPrompt from './components/ReloadPrompt';
+
+// ==========================================
 // เปลี่ยนการโหลดหน้าเว็บเป็นแบบ Lazy Loading
 // (ช่วยให้โหลดเว็บครั้งแรกเร็วขึ้นมาก เพราะจะโหลดโค้ดเฉพาะหน้าที่กดเข้าดู)
 // ==========================================
@@ -72,6 +78,12 @@ function App() {
             <Helmet>
               <meta name="theme-color" content={theme === 'dark' ? '#0f1015' : '#f0f2f5'} />
             </Helmet>
+
+            {/* ========================================== */}
+            {/* แสดง PWA UI (ทำงานอัตโนมัติในทุกหน้า) */}
+            {/* ========================================== */}
+            <OfflineFallback />
+            <ReloadPrompt />
 
             <Navbar session={session} setSession={setSession} theme={theme} toggleTheme={toggleTheme} />
             
