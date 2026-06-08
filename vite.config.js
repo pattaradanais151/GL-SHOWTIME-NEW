@@ -2,7 +2,6 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
@@ -13,14 +12,21 @@ export default defineConfig({
       // ไฟล์ที่จะถูก Cache ไว้ล่วงหน้า
       includeAssets: ['favicon.svg', 'icons.svg', 'robots.txt'], 
       
+      // เพิ่ม Workbox config เพื่อแก้ปัญหา glob patterns error ตอน Build
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,jpg,jpeg}'],
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+      },
+      
       // การตั้งค่า Web App Manifest
       manifest: {
-        name: 'Girl Love TH',
-        short_name: 'GL TH',
-        description: 'Girl Love TH Application',
+        name: 'Showtime TH',
+        short_name: 'Showtime',
+        description: 'GL and BL Showtime Application',
         theme_color: '#ffffff',
         background_color: '#ffffff',
-        display: 'standalone', // ให้แสดงผลแบบแอปเต็มจอ ไม่มีแถบ URL
+        display: 'standalone',
         icons: [
           {
             src: 'favicon.svg',

@@ -117,6 +117,13 @@ const PermToggle = ({ label, value, onChange, disabled }) => (
   </div>
 );
 
+const NoPermission = () => (
+  <div className="admin-card animation-fade-in" style={{ textAlign: 'center', padding: '3rem', marginTop: '2rem' }}>
+    <Lock size={48} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
+    <h3 style={{ color: 'var(--text-muted)', fontWeight: 400 }}>คุณไม่มีสิทธิ์เข้าถึงส่วนนี้</h3>
+  </div>
+);
+
 const Admin = () => {
   const { language } = useLanguage();
   const navigate = useNavigate();
