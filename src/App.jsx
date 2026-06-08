@@ -17,9 +17,9 @@ import ReloadPrompt from './components/ReloadPrompt';
 
 // ==========================================
 // เปลี่ยนการโหลดหน้าเว็บเป็นแบบ Lazy Loading
-// (ช่วยให้โหลดเว็บครั้งแรกเร็วขึ้นมาก เพราะจะโหลดโค้ดเฉพาะหน้าที่กดเข้าดู)
 // ==========================================
 const Home = lazy(() => import('./pages/Home'));
+const HomeBL = lazy(() => import('./pages/HomeBL')); // 👉 สเต็ป 3: เพิ่มการดึงหน้าแรกของ BL เข้ามาตรงนี้
 const Login = lazy(() => import('./pages/Login'));
 const Admin = lazy(() => import('./pages/Admin'));
 const Schedule = lazy(() => import('./pages/Schedule'));
@@ -80,7 +80,7 @@ function App() {
             </Helmet>
 
             {/* ========================================== */}
-            {/* แสดง PWA UI (ทำงานอัตโนมัติในทุกหน้า) */}
+            {/* แสดง PWA UI (ทำงานอัตโนมัติ in ทุกหน้า) */}
             {/* ========================================== */}
             <OfflineFallback />
             <ReloadPrompt />
@@ -97,6 +97,7 @@ function App() {
                 }>
                   <Routes>
                     <Route path="/" element={<Home />} />
+                    <Route path="/bl" element={<HomeBL />} /> {/* 👉 สเต็ป 3: เพิ่มปุ่มเส้นทาง URL สำหรับหน้าแรกของ BL ตรงนี้ */}
                     <Route path="/community" element={<CommunityFeed currentUser={communityUser} isAdmin={session} />} />
                     <Route path="/community/auth" element={!communityUser ? <CommunityAuth /> : <Navigate to="/community" />} />
                     <Route path="/schedule" element={<Schedule />} />
