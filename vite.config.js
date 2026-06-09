@@ -6,20 +6,17 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      // ให้ Service Worker อัปเดตตัวเองอัตโนมัติเมื่อมีเวอร์ชันใหม่
       registerType: 'autoUpdate',
-      
-      // ไฟล์ที่จะถูก Cache ไว้ล่วงหน้า
       includeAssets: ['favicon.svg', 'icons.svg', 'robots.txt'], 
       
-      // เพิ่ม Workbox config เพื่อแก้ปัญหา glob patterns error ตอน Build
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,jpg,jpeg}'],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
+        // เพิ่มบรรทัดนี้: ขยายลิมิตไฟล์ให้เป็น 10 MB (10 * 1024 * 1024 bytes)
+        maximumFileSizeToCacheInBytes: 10485760,
       },
       
-      // การตั้งค่า Web App Manifest
       manifest: {
         name: 'Showtime TH',
         short_name: 'Showtime',
