@@ -117,10 +117,13 @@ const PermToggle = ({ label, value, onChange, disabled }) => (
   </div>
 );
 
-const NoPermission = () => (
+// ============================
+// PERMISSION GUARD COMPONENT
+// ============================
+const NoPermission = ({ message }) => (
   <div className="admin-card animation-fade-in" style={{ textAlign: 'center', padding: '3rem', marginTop: '2rem' }}>
-    <Lock size={48} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
-    <h3 style={{ color: 'var(--text-muted)', fontWeight: 400 }}>คุณไม่มีสิทธิ์เข้าถึงส่วนนี้</h3>
+    <Shield size={48} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
+    <h3 style={{ color: 'var(--text-muted)', fontWeight: 400 }}>{message}</h3>
   </div>
 );
 
@@ -132,7 +135,7 @@ const Admin = () => {
 
   const currentAdmin = localStorage.getItem('currentAdmin') || 'Unknown';
   const [ipAddress, setIpAddress] = useState('Unknown IP');
-  const [currentAdminData, setCurrentAdminData] = useState(null); // holds full row incl. permissions
+  const [currentAdminData, setCurrentAdminData] = useState(null); 
 
   const [manageDomain, setManageDomain] = useState('GL'); 
 
@@ -156,7 +159,6 @@ const Admin = () => {
   const [customAlert, setCustomAlert] = useState({ isOpen: false, title: '', message: '', type: 'danger', onConfirm: null });
   const [promptModal, setPromptModal] = useState({ isOpen: false, targetId: null, targetUsername: '', newPassword: '' });
 
-  // Permission editing modal state
   const [permModal, setPermModal] = useState({
     isOpen: false,
     targetId: null,
@@ -172,7 +174,6 @@ const Admin = () => {
   const initialForm = { title: '', rating: '', release_date: '', genre: '', director: '', platform: '', air_day: '', air_time: '', youtube_url: '', admin_note: '', status: 'Standard', domain: 'GL' };
   const [formData, setFormData] = useState(initialForm);
 
-  // New admin form — includes permissions
   const defaultNewAdminPerms = { is_superadmin: false, can_manage_gl: true, can_manage_bl: false, can_manage_community: false, can_manage_logs: false };
   const [newAdminForm, setNewAdminForm] = useState({ username: '', password: '', ...defaultNewAdminPerms });
   const [passwordForm, setPasswordForm] = useState({ username: currentAdmin, oldPassword: '', newPassword: '', confirmPassword: '' });
@@ -183,12 +184,8 @@ const Admin = () => {
     { value: 'Ended', label: tAd('status_ended') }
   ];
 
-  // =====================
-  // PERMISSION HELPERS
-  // =====================
   const isSuperAdmin = currentAdminData?.is_superadmin === true;
 
-  // check if current admin can access a tab
   const canAccess = (tab) => {
     if (!currentAdminData) return false;
     if (currentAdminData.is_superadmin) return true;
@@ -202,24 +199,20 @@ const Admin = () => {
       case 'logs':
         return currentAdminData.can_manage_logs;
       case 'users':
-        return currentAdminData.is_superadmin; // Only superadmin can manage admins
+        return currentAdminData.is_superadmin;
       case 'settings':
-        return true; // Everyone can change their own password
+        return true; 
       default:
         return false;
     }
   };
 
-  // Can manage specific domain
   const canManageDomain = (domain) => {
     if (!currentAdminData) return false;
     if (currentAdminData.is_superadmin) return true;
     return domain === 'GL' ? currentAdminData.can_manage_gl : currentAdminData.can_manage_bl;
   };
 
-  // ==========================================
-  // SESSION TIMEOUT LOGIC
-  // ==========================================
   useEffect(() => {
     let timeoutId;
     const resetTimer = () => {
@@ -261,7 +254,6 @@ const Admin = () => {
     if (activeTab === 'posts') fetchCommunityPostsAdmin();
   }, [activeTab]);
 
-  // Redirect to first accessible tab once permissions loaded
   useEffect(() => {
     if (!currentAdminData) return;
     if (!canAccess(activeTab)) {
@@ -359,7 +351,6 @@ const Admin = () => {
     setTimeout(() => setToast(prev => ({ ...prev, show: false })), 4000);
   };
 
-  // Movie Handlers
   const handleMovieSubmitClick = (e) => {
     e.preventDefault();
     if (!canManageDomain(formData.domain)) {
@@ -439,7 +430,6 @@ const Admin = () => {
     });
   };
 
-  // Logs Handlers
   const toggleSelectLog = (id) => {
     setSelectedLogs(prev => prev.includes(id) ? prev.filter(lId => lId !== id) : [...prev, id]);
   };
@@ -482,7 +472,6 @@ const Admin = () => {
     });
   };
 
-  // Admins Handlers
   const handleAddAdmin = async (e) => {
     e.preventDefault();
     if(newAdminForm.username.length < 3 || newAdminForm.password.length < 6) {
@@ -580,9 +569,6 @@ const Admin = () => {
     }
   };
 
-  // ============================
-  // PERMISSIONS MODAL HANDLERS
-  // ============================
   const openPermModal = (admin) => {
     setPermModal({
       isOpen: true,
@@ -671,7 +657,6 @@ const Admin = () => {
     });
   };
 
-  // Pagination Logic
   const filteredAdminMovies = useMemo(() => {
     return movies.filter(m => m.title.toLowerCase().includes(adminSearch.toLowerCase()));
   }, [movies, adminSearch]);
@@ -683,9 +668,6 @@ const Admin = () => {
   const totalLogPages = Math.ceil(logsList.length / ITEMS_PER_PAGE);
   const paginatedLogs = logsList.slice((logPage - 1) * ITEMS_PER_PAGE, logPage * ITEMS_PER_PAGE);
 
-  // =====================
-  // PERMISSION BADGE
-  // =====================
   const AdminPermBadges = ({ admin }) => {
     if (admin.is_superadmin) {
       return (
@@ -711,19 +693,8 @@ const Admin = () => {
     );
   };
 
-  // ============================
-  // PERMISSION GUARD COMPONENT
-  // ============================
-  const NoPermission = () => (
-    <div className="admin-card animation-fade-in" style={{ textAlign: 'center', padding: '3rem' }}>
-      <Shield size={48} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
-      <h3 style={{ color: 'var(--text-muted)', fontWeight: 400 }}>{tAd('msg_no_perm')}</h3>
-    </div>
-  );
-
   return (
     <div className="admin-container">
-      {/* Toast Notification */}
       {toast.show && (
         <div className={`toast-alert ${toast.type}`}>
           {toast.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
@@ -731,7 +702,6 @@ const Admin = () => {
         </div>
       )}
 
-      {/* CUSTOM ALERT MODAL */}
       {customAlert.isOpen && (
         <div className="modal-overlay" onClick={() => setCustomAlert({ ...customAlert, isOpen: false })}>
           <div className="glass-panel modal-content" style={{ maxWidth: '400px', padding: '2rem', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
@@ -752,7 +722,6 @@ const Admin = () => {
         </div>
       )}
 
-      {/* CUSTOM PROMPT MODAL */}
       {promptModal.isOpen && (
         <div className="modal-overlay" onClick={() => setPromptModal({ ...promptModal, isOpen: false })}>
           <div className="glass-panel modal-content" style={{ maxWidth: '400px', padding: '2rem' }} onClick={e => e.stopPropagation()}>
@@ -783,9 +752,6 @@ const Admin = () => {
         </div>
       )}
 
-      {/* ================================
-          PERMISSION EDIT MODAL
-      ================================ */}
       {permModal.isOpen && (
         <div className="modal-overlay" onClick={() => setPermModal(prev => ({ ...prev, isOpen: false }))}>
           <div className="glass-panel modal-content" style={{ maxWidth: '420px', padding: '2rem' }} onClick={e => e.stopPropagation()}>
@@ -798,7 +764,6 @@ const Admin = () => {
             </div>
 
             <div style={{ marginBottom: '1rem' }}>
-              {/* Superadmin toggle */}
               <PermToggle
                 label={`★ ${tAd('perm_superadmin')}`}
                 value={permModal.perms.is_superadmin}
@@ -841,7 +806,6 @@ const Admin = () => {
         </div>
       )}
 
-      {/* MODAL CONFIRMATION (ตรวจสอบก่อนเซฟหนัง) */}
       {showConfirmModal && (
         <div className="modal-overlay" onClick={() => setShowConfirmModal(false)}>
           <div className="modal-content-movie confirm-modal" onClick={e => e.stopPropagation()}>
@@ -887,7 +851,6 @@ const Admin = () => {
         </div>
       )}
 
-      {/* ADMIN HEADER */}
       <div className="admin-header">
         <h1 className="admin-mode-title">ADMIN MODE</h1>
         {currentAdminData && (
@@ -901,86 +864,84 @@ const Admin = () => {
           </div>
         )}
         <div
-  className="admin-tabs"
-  style={{
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '12px',
-    alignItems: 'center',
-    padding: '12px',
-    background: 'rgba(255,255,255,0.02)',
-    border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: '16px',
-    marginBottom: '2rem'
-  }}
->
-  {canAccess('add') && (
-    <button
-      className={`admin-tab ${(activeTab === 'add') ? 'active' : ''}`}
-      onClick={() => setActiveTab('add')}
-    >
-      <Plus size={18} /> {editingId ? tAd('tab_editing') : tAd('tab_add')}
-    </button>
-  )}
+          className="admin-tabs"
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '12px',
+            alignItems: 'center',
+            padding: '12px',
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '16px',
+            marginBottom: '2rem'
+          }}
+        >
+          {canAccess('add') && (
+            <button
+              className={`admin-tab ${(activeTab === 'add') ? 'active' : ''}`}
+              onClick={() => setActiveTab('add')}
+            >
+              <Plus size={18} /> {editingId ? tAd('tab_editing') : tAd('tab_add')}
+            </button>
+          )}
 
-  {canAccess('manage') && (
-    <button
-      className={`admin-tab ${activeTab === 'manage' ? 'active' : ''}`}
-      onClick={() => setActiveTab('manage')}
-    >
-      <Film size={18} /> {tAd('tab_manage')}
-    </button>
-  )}
+          {canAccess('manage') && (
+            <button
+              className={`admin-tab ${activeTab === 'manage' ? 'active' : ''}`}
+              onClick={() => setActiveTab('manage')}
+            >
+              <Film size={18} /> {tAd('tab_manage')}
+            </button>
+          )}
 
-  {isSuperAdmin && (
-    <button
-      className={`admin-tab ${activeTab === 'users' ? 'active' : ''}`}
-      onClick={() => setActiveTab('users')}
-    >
-      <Users size={18} /> {tAd('tab_users')}
-    </button>
-  )}
+          {isSuperAdmin && (
+            <button
+              className={`admin-tab ${activeTab === 'users' ? 'active' : ''}`}
+              onClick={() => setActiveTab('users')}
+            >
+              <Users size={18} /> {tAd('tab_users')}
+            </button>
+          )}
 
-  {canAccess('community') && (
-    <button
-      className={`admin-tab ${activeTab === 'community' ? 'active' : ''}`}
-      onClick={() => setActiveTab('community')}
-    >
-      <Users size={18} color="#8b5cf6" />
-      <span style={{ color: '#8b5cf6' }}>{tAd('tab_community')}</span>
-    </button>
-  )}
+          {canAccess('community') && (
+            <button
+              className={`admin-tab ${activeTab === 'community' ? 'active' : ''}`}
+              onClick={() => setActiveTab('community')}
+            >
+              <Users size={18} color="#8b5cf6" />
+              <span style={{ color: '#8b5cf6' }}>{tAd('tab_community')}</span>
+            </button>
+          )}
 
-  {canAccess('posts') && (
-    <button
-      className={`admin-tab ${activeTab === 'posts' ? 'active' : ''}`}
-      onClick={() => setActiveTab('posts')}
-    >
-      <MessageSquare size={18} color="#ff2a7a" />
-      <span style={{ color: 'var(--pink-accent)' }}>{tAd('tab_posts')}</span>
-    </button>
-  )}
+          {canAccess('posts') && (
+            <button
+              className={`admin-tab ${activeTab === 'posts' ? 'active' : ''}`}
+              onClick={() => setActiveTab('posts')}
+            >
+              <MessageSquare size={18} color="#ff2a7a" />
+              <span style={{ color: 'var(--pink-accent)' }}>{tAd('tab_posts')}</span>
+            </button>
+          )}
 
-  {canAccess('logs') && (
-    <button
-      className={`admin-tab ${activeTab === 'logs' ? 'active' : ''}`}
-      onClick={() => setActiveTab('logs')}
-    >
-      <Activity size={18} /> {tAd('tab_logs')}
-    </button>
-  )}
+          {canAccess('logs') && (
+            <button
+              className={`admin-tab ${activeTab === 'logs' ? 'active' : ''}`}
+              onClick={() => setActiveTab('logs')}
+            >
+              <Activity size={18} /> {tAd('tab_logs')}
+            </button>
+          )}
 
-  <button
-    className={`admin-tab ${activeTab === 'settings' ? 'active' : ''}`}
-    onClick={() => setActiveTab('settings')}
-  >
-    <KeyRound size={18} /> {tAd('tab_settings')}
-  </button>
-</div>
+          <button
+            className={`admin-tab ${activeTab === 'settings' ? 'active' : ''}`}
+            onClick={() => setActiveTab('settings')}
+          >
+            <KeyRound size={18} /> {tAd('tab_settings')}
+          </button>
+        </div>
+      </div>
 
-      {/* =======================================
-          TAB 1: ADD / EDIT
-      ======================================= */}
       {activeTab === 'add' && (
         canAccess('add') ? (
           <div className="admin-card animation-fade-in">
@@ -990,7 +951,6 @@ const Admin = () => {
               <div className="form-group full-width">
                 <label>{tAd('domain')}</label>
                 <div className="status-selector" style={{ pointerEvents: editingId ? 'none' : 'auto', opacity: editingId ? 0.6 : 1 }}>
-                  {/* Only show GL if has GL permission */}
                   {(isSuperAdmin || currentAdminData?.can_manage_gl) && (
                     <div 
                       className={`status-option ${formData.domain === 'GL' ? 'selected' : ''}`}
@@ -1000,7 +960,6 @@ const Admin = () => {
                       <span style={{ fontWeight: formData.domain === 'GL' ? 'bold' : 'normal', color: formData.domain === 'GL' ? 'var(--pink-accent)' : '' }}>GL SHOWTIME</span>
                     </div>
                   )}
-                  {/* Only show BL if has BL permission */}
                   {(isSuperAdmin || currentAdminData?.can_manage_bl) && (
                     <div 
                       className={`status-option ${formData.domain === 'BL' ? 'selected' : ''}`}
@@ -1059,12 +1018,9 @@ const Admin = () => {
               </div>
             </form>
           </div>
-        ) : <NoPermission />
+        ) : <NoPermission message={tAd('msg_no_perm')} />
       )}
 
-      {/* =======================================
-          TAB 2: MANAGE
-      ======================================= */}
       {activeTab === 'manage' && (
         canAccess('manage') ? (
           <div className="admin-card animation-fade-in">
@@ -1128,24 +1084,19 @@ const Admin = () => {
               </div>
             )}
           </div>
-        ) : <NoPermission />
+        ) : <NoPermission message={tAd('msg_no_perm')} />
       )}
 
-      {/* =======================================
-          TAB 3: USERS (ADMINS) — SUPERADMIN ONLY
-      ======================================= */}
       {activeTab === 'users' && (
         isSuperAdmin ? (
           <div className="admin-card animation-fade-in">
             <h2>{tAd('admin_title')}</h2>
             
-            {/* ========== ADD NEW ADMIN FORM ========== */}
             <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '14px', padding: '1.5rem', marginBottom: '1.5rem' }}>
               <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Plus size={18} color="var(--pink-accent)" /> เพิ่มแอดมินใหม่
               </h3>
               <form onSubmit={handleAddAdmin}>
-                {/* Username + Password row */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
                   <input
                     type="text"
@@ -1165,7 +1116,6 @@ const Admin = () => {
                   />
                 </div>
 
-                {/* Permissions section */}
                 <div style={{ marginBottom: '1rem' }}>
                   <p style={{ fontSize: '0.8rem', color: '#888', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <Shield size={13} /> กำหนดสิทธิ์การเข้าถึง
@@ -1209,7 +1159,6 @@ const Admin = () => {
 
             <div className="alert-box warning"><AlertCircle size={18} /><span>{tAd('admin_warning')}</span></div>
 
-            {/* ========== ADMIN LIST ========== */}
             <div className="admin-list-container">
               {adminsList.map(admin => (
                 <div key={admin.id} className="admin-list-item">
@@ -1226,7 +1175,6 @@ const Admin = () => {
                     <AdminPermBadges admin={admin} />
                   </div>
                   <div className="item-actions" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                    {/* Edit Permissions button — for others */}
                     {admin.username !== currentAdmin && (
                       <button
                         onClick={() => openPermModal(admin)}
@@ -1248,12 +1196,9 @@ const Admin = () => {
               ))}
             </div>
           </div>
-        ) : <NoPermission />
+        ) : <NoPermission message={tAd('msg_no_perm')} />
       )}
 
-      {/* =======================================
-          TAB 4: COMMUNITY USERS
-      ======================================= */}
       {activeTab === 'community' && (
         canAccess('community') ? (
           <div className="admin-card animation-fade-in">
@@ -1307,12 +1252,9 @@ const Admin = () => {
               </div>
             )}
           </div>
-        ) : <NoPermission />
+        ) : <NoPermission message={tAd('msg_no_perm')} />
       )}
 
-      {/* =======================================
-          TAB 5: MANAGE POSTS
-      ======================================= */}
       {activeTab === 'posts' && (
         canAccess('posts') ? (
           <div className="admin-card animation-fade-in posts-panel">
@@ -1365,12 +1307,9 @@ const Admin = () => {
               </div>
             )}
           </div>
-        ) : <NoPermission />
+        ) : <NoPermission message={tAd('msg_no_perm')} />
       )}
 
-      {/* =======================================
-          TAB 6: LOGS
-      ======================================= */}
       {activeTab === 'logs' && (
         canAccess('logs') ? (
           <div className="admin-card animation-fade-in" style={{ padding: 0, overflow: 'hidden' }}>
@@ -1434,12 +1373,9 @@ const Admin = () => {
               </div>
             )}
           </div>
-        ) : <NoPermission />
+        ) : <NoPermission message={tAd('msg_no_perm')} />
       )}
 
-      {/* =======================================
-          TAB 7: SETTINGS (PASSWORD)
-      ======================================= */}
       {activeTab === 'settings' && (
         <div className="admin-card animation-fade-in" style={{ maxWidth: '500px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
