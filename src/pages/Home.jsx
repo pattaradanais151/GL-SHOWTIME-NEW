@@ -1,6 +1,8 @@
+// src/pages/Home.jsx
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabase'; 
 import { useLanguage } from '../contexts/LanguageContext';
+import { notifyVisit } from '../utils/telegram'; // นำเข้าฟังก์ชันแจ้งเตือน
 
 const ITEMS_PER_PAGE = 12;
 
@@ -10,7 +12,6 @@ export default function Home() {
   const [filteredMovies, setFilteredMovies] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // States สำหรับ Hero Slider
   const [heroMovies, setHeroMovies] = useState([]);
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -36,6 +37,11 @@ export default function Home() {
     { id: 'SOON', label: t('home.status_soon') || 'Coming Soon' }
   ];
 
+  // แจ้งเตือนเมื่อมีการเข้าชมหน้าเว็บ GL
+  useEffect(() => {
+    notifyVisit('หน้าหลัก (GL)');
+  }, []);
+
   // ดึงข้อมูล
   useEffect(() => {
     const fetchMovies = async () => {
@@ -47,14 +53,11 @@ export default function Home() {
           setMovies(data);
           setFilteredMovies(data);
 
-          // คัดแยกหนังสำหรับ Hero Slider (หา On Air ก่อน ให้ได้มากสุด 5 เรื่อง)
           let onAir = data.filter(m => (m.status || '').toLowerCase().includes('on air') || (m.status || '').toLowerCase().includes('standard'));
-          // ถ้า On Air มีไม่ถึง 5 เรื่อง ให้เอาหนังล่าสุดมาเติมให้ครบ
           if (onAir.length < 5) {
             const others = data.filter(m => !onAir.includes(m));
             onAir = [...onAir, ...others.slice(0, 5 - onAir.length)];
           } else {
-            // สุ่ม 5 เรื่องจาก On Air (หรือจะเอา 5 เรื่องแรกก็ได้ ในที่นี้เอา 5 เรื่องแรกที่ใหม่สุด)
             onAir = onAir.slice(0, 5);
           }
           setHeroMovies(onAir);
@@ -73,7 +76,7 @@ export default function Home() {
     if (heroMovies.length <= 1) return;
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroMovies.length);
-    }, 5000); // เปลี่ยนรูปทุก 5 วินาที
+    }, 5000);
     return () => clearInterval(interval);
   }, [heroMovies]);
 
@@ -113,7 +116,6 @@ export default function Home() {
     return (match && match[2].length === 11) ? match[2] : null;
   };
 
-  // เปลี่ยนเป็นดึงรูป MaxRes สำหรับ 16:9
   const getCoverImage = (movie) => {
     if (movie.image_url) return movie.image_url;
     const ytId = getYoutubeId(movie.youtube_url);
@@ -121,7 +123,6 @@ export default function Home() {
     return 'https://via.placeholder.com/1280x720/2a2a32/FFFFFF?text=No+Cover';
   };
 
-  // Icons
   const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>;
   const StarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/></svg>;
   const CloseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/></svg>;
@@ -135,10 +136,6 @@ export default function Home() {
   return (
     <div className="home-wrapper">
       <div className="container">
-        
-        {/* =======================================
-            HERO SECTION (SLIDER iQIYI STYLE)
-        ======================================= */}
         {!loading && heroMovies.length > 0 && (
           <div className="hero-slider-container">
             {heroMovies.map((movie, index) => (
@@ -161,7 +158,6 @@ export default function Home() {
               </div>
             ))}
             
-            {/* Dots Indicator */}
             <div className="hero-indicators">
               {heroMovies.map((_, index) => (
                 <button 
@@ -174,9 +170,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* =======================================
-            FILTERS SECTION
-        ======================================= */}
         <div className="filter-section">
           <div className="search-wrapper-home">
             <div className="search-icon"><SearchIcon /></div>
@@ -221,9 +214,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* =======================================
-            NOW SHOWING GRID (16:9)
-        ======================================= */}
         <div className="section-header">
           <h2>Now Showing</h2>
         </div>
@@ -238,7 +228,6 @@ export default function Home() {
                   <div className="card-image-container">
                     <img src={getCoverImage(movie)} alt={movie.title || 'Movie'} className="card-image" />
                     
-                    {/* ข้อมูลทับบนรูป */}
                     <div className="rating-overlay">
                       <StarIcon /> {movie.rating || '-'}
                     </div>
@@ -264,9 +253,6 @@ export default function Home() {
               )}
             </div>
 
-            {/* =======================================
-                PAGINATION
-            ======================================= */}
             {totalPages > 1 && (
               <div className="pagination">
                 <button className="page-btn" disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)}>
@@ -284,9 +270,6 @@ export default function Home() {
         )}
       </div>
 
-      {/* =======================================
-          MODAL
-      ======================================= */}
       {selectedMovie && (
         <div className="modal-overlay" onClick={() => setSelectedMovie(null)}>
           <div className="modal-content-movie" onClick={e => e.stopPropagation()}>

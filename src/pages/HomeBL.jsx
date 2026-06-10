@@ -1,6 +1,8 @@
+// src/pages/HomeBL.jsx
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabase'; 
 import { useLanguage } from '../contexts/LanguageContext';
+import { notifyVisit } from '../utils/telegram'; // นำเข้าฟังก์ชันแจ้งเตือน
 
 const ITEMS_PER_PAGE = 12;
 
@@ -10,7 +12,6 @@ export default function HomeBL() {
   const [filteredMovies, setFilteredMovies] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // States สำหรับ Hero Slider
   const [heroMovies, setHeroMovies] = useState([]);
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -36,21 +37,22 @@ export default function HomeBL() {
     { id: 'SOON', label: t('home.status_soon') || 'Coming Soon' }
   ];
 
-  // ดึงข้อมูลซีรีส์จากตารางฝั่ง BL
+  // แจ้งเตือนเมื่อมีการเข้าชมหน้าเว็บ BL
+  useEffect(() => {
+    notifyVisit('หน้าหลัก (BL)');
+  }, []);
+
   useEffect(() => {
     const fetchMovies = async () => {
       try {
         setLoading(true);
-        // 👉 เปลี่ยนจาก 'movies' เป็น 'movies_bl' เพื่อแยกฐานข้อมูล
         const { data, error } = await supabase.from('movies_bl').select('*').order('id', { ascending: false });
         if (error) throw error;
         if (data) {
           setMovies(data);
           setFilteredMovies(data);
 
-          // คัดแยกหนังสำหรับ Hero Slider (หา On Air ก่อน ให้ได้มากสุด 5 เรื่อง)
           let onAir = data.filter(m => (m.status || '').toLowerCase().includes('on air') || (m.status || '').toLowerCase().includes('standard'));
-          // ถ้า On Air มีไม่ถึง 5 เรื่อง ให้เอาหนังล่าสุดมาเติมให้ครบ
           if (onAir.length < 5) {
             const others = data.filter(m => !onAir.includes(m));
             onAir = [...onAir, ...others.slice(0, 5 - onAir.length)];
@@ -68,7 +70,6 @@ export default function HomeBL() {
     fetchMovies();
   }, []);
 
-  // ระบบ Auto-slide สำหรับ Hero Banner
   useEffect(() => {
     if (heroMovies.length <= 1) return;
     const interval = setInterval(() => {
@@ -77,7 +78,6 @@ export default function HomeBL() {
     return () => clearInterval(interval);
   }, [heroMovies]);
 
-  // ฟิลเตอร์การค้นหา
   useEffect(() => {
     let result = movies;
     if (searchTerm) {
@@ -120,7 +120,6 @@ export default function HomeBL() {
     return 'https://via.placeholder.com/1280x720/2a2a32/FFFFFF?text=No+Cover';
   };
 
-  // Icons SVG เดิมของระบบ
   const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>;
   const StarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/></svg>;
   const CloseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/></svg>;
@@ -134,10 +133,6 @@ export default function HomeBL() {
   return (
     <div className="home-wrapper">
       <div className="container">
-        
-        {/* =======================================
-            HERO SECTION (BL SLIDER)
-        ======================================= */}
         {!loading && heroMovies.length > 0 && (
           <div className="hero-slider-container">
             {heroMovies.map((movie, index) => (
@@ -172,9 +167,6 @@ export default function HomeBL() {
           </div>
         )}
 
-        {/* =======================================
-            FILTERS SECTION
-        ======================================= */}
         <div className="filter-section">
           <div className="search-wrapper-home">
             <div className="search-icon"><SearchIcon /></div>
@@ -219,9 +211,6 @@ export default function HomeBL() {
           </div>
         </div>
 
-        {/* =======================================
-            NOW SHOWING GRID
-        ======================================= */}
         <div className="section-header">
           <h2>BL Now Showing</h2>
         </div>
@@ -260,7 +249,6 @@ export default function HomeBL() {
               )}
             </div>
 
-            {/* PAGINATION */}
             {totalPages > 1 && (
               <div className="pagination">
                 <button className="page-btn" disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)}>
@@ -278,9 +266,6 @@ export default function HomeBL() {
         )}
       </div>
 
-      {/* =======================================
-          MODAL DETAILS
-      ======================================= */}
       {selectedMovie && (
         <div className="modal-overlay" onClick={() => setSelectedMovie(null)}>
           <div className="modal-content-movie" onClick={e => e.stopPropagation()}>
