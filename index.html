@@ -21,15 +21,14 @@
     <meta property="og:url" content="https://yourwebsite.com/" />
     <meta property="og:title" content="Girl Love TH - คอมมูนิตี้ซีรีส์ GL" />
     <meta property="og:description" content="แหล่งรวมข้อมูล ตารางออกอากาศ และคอมมูนิตี้สำหรับแฟนคลับ Girl Love TH (GL TH)" />
-    <meta property="og:image" content="https://yourwebsite.com/og-image.jpg" /> <!-- เปลี่ยน URL ให้ตรงกับรูปปกเว็บคุณ -->
+    <meta property="og:image" content="https://yourwebsite.com/og-image.jpg" />
 
     <!-- Twitter / X -->
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content="https://yourwebsite.com/" />
     <meta property="twitter:title" content="Girl Love TH - คอมมูนิตี้ซีรีส์ GL" />
     <meta property="twitter:description" content="แหล่งรวมข้อมูล ตารางออกอากาศ และคอมมูนิตี้สำหรับแฟนคลับ Girl Love TH (GL TH)" />
-    <meta property="twitter:image" content="https://yourwebsite.com/og-image.jpg" /> <!-- เปลี่ยน URL ให้ตรงกับรูปปกเว็บคุณ -->
-
+    <meta property="twitter:image" content="https://yourwebsite.com/og-image.jpg" />
 
     <!-- ========================= -->
     <!-- 1. LinkedIn Insight Tag -->
@@ -69,19 +68,20 @@
     </script>
 
     <!-- ========================= -->
-    <!-- 3. LinkedIn Noscript -->
-    <!-- ========================= -->
-    <noscript>
-      <img height="1" width="1" style="display:none;" alt="" src="https://px.ads.linkedin.com/collect/?pid=YOUR_LINKEDIN_PARTNER_ID&fmt=gif" />
-    </noscript>
-
-    <!-- ========================= -->
     <!-- 4. Cloudflare Analytics -->
     <!-- ========================= -->
     <script defer fetchpriority="low" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "YOUR_CLOUDFLARE_TOKEN"}'></script>
 
   </head>
   <body>
+
+    <!-- ========================= -->
+    <!-- 3. LinkedIn Noscript (ต้องอยู่ใน body เท่านั้น ไม่ใช่ head) -->
+    <!-- ========================= -->
+    <noscript>
+      <img height="1" width="1" style="display:none;" alt="" src="https://px.ads.linkedin.com/collect/?pid=YOUR_LINKEDIN_PARTNER_ID&fmt=gif" />
+    </noscript>
+
     <div id="root"></div>
     <script type="module" src="/src/main.jsx" fetchpriority="high"></script>
   </body>
