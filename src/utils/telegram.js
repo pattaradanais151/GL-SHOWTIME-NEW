@@ -52,6 +52,28 @@ export const notifyVisit = async (pageName) => {
     await sendTelegramMessage(text);
 };
 
+// อัปเดตฟังก์ชันใน src/utils/telegram.js
+export const notifyMovieAction = async (action, movieTitle, movieType, adminName) => {
+    const ip = await getClientIP();
+    const time = new Date().toLocaleString('th-TH');
+    
+    let icon = '📝';
+    let actionText = 'อัปเดตข้อมูล';
+    
+    if (action === 'ADD') { icon = '✅'; actionText = 'เพิ่มข้อมูลหนังใหม่'; }
+    if (action === 'EDIT') { icon = '✏️'; actionText = 'แก้ไขข้อมูลหนัง'; }
+    if (action === 'DELETE') { icon = '🗑️'; actionText = 'ลบข้อมูลหนัง'; }
+
+    const text = `${icon} <b>${actionText}</b>\n\n` +
+                 `🎬 <b>ชื่อเรื่อง:</b> ${movieTitle}\n` +
+                 `📌 <b>หมวดหมู่:</b> ${movieType}\n` + 
+                 `👤 <b>ผู้ดำเนินการ:</b> ${adminName}\n` +
+                 `🌐 <b>IP Address:</b> ${ip}\n` +
+                 `⏰ <b>เวลา:</b> ${time}`;
+                 
+    await sendTelegramMessage(text);
+};
+
 // แจ้งเตือนเมื่อมีการ เพิ่ม/แก้ไข/ลบ หนัง
 export const notifyMovieAction = async (action, movieTitle, movieType) => {
     const ip = await getClientIP();

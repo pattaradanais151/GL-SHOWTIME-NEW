@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../utils/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
+import { notifyMovieAction } from '../utils/telegram'; // 👉 นำเข้าฟังก์ชันแจ้งเตือน Telegram
 import { 
   Film, Plus, Edit, Trash2, Users, Activity, KeyRound, 
   Save, AlertCircle, CheckCircle, Search, X, ChevronLeft, ChevronRight, AlertTriangle, Lock, MessageSquare, Shield, ShieldCheck, ToggleLeft, ToggleRight
@@ -95,9 +96,6 @@ const adminTranslations = {
 const ITEMS_PER_PAGE = 10;
 const SESSION_TIMEOUT_MS = 3 * 60 * 1000; 
 
-// ==============================
-// PERMISSION TOGGLE COMPONENT
-// ==============================
 const PermToggle = ({ label, value, onChange, disabled }) => (
   <div
     onClick={() => !disabled && onChange(!value)}
@@ -117,9 +115,6 @@ const PermToggle = ({ label, value, onChange, disabled }) => (
   </div>
 );
 
-// ============================
-// PERMISSION GUARD COMPONENT
-// ============================
 const NoPermission = ({ message }) => (
   <div className="admin-card animation-fade-in" style={{ textAlign: 'center', padding: '3rem', marginTop: '2rem' }}>
     <Shield size={48} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
@@ -374,6 +369,7 @@ const Admin = () => {
         if (!error) {
           showToast(tAd('msg_update_success'), 'success');
           writeLog('EDIT_MOVIE', formData.title, `Updated movie in ${domain} (Status: ${statusText})`);
+          notifyMovieAction('EDIT', formData.title, domain, currentAdmin); // 👉 แจ้งเตือน Telegram ตอนแก้
           resetForm(); 
           setManageDomain(domain);
           fetchMovies(domain); 
@@ -384,6 +380,7 @@ const Admin = () => {
         if (!error) {
           showToast(tAd('msg_add_success'), 'success');
           writeLog('ADD_MOVIE', formData.title, `Added new movie to ${domain} (Status: ${statusText})`);
+          notifyMovieAction('ADD', formData.title, domain, currentAdmin); // 👉 แจ้งเตือน Telegram ตอนเพิ่ม
           resetForm(); 
           setManageDomain(domain);
           fetchMovies(domain); 
@@ -422,6 +419,7 @@ const Admin = () => {
         if (!error) { 
           showToast(tAd('msg_del_success'), 'success'); 
           writeLog('DELETE_MOVIE', title, `Deleted movie from ${domain}`);
+          notifyMovieAction('DELETE', title, domain, currentAdmin); // 👉 แจ้งเตือน Telegram ตอนลบ
           fetchMovies(domain); 
         } else {
           showToast(tAd('msg_del_fail') + error.message, 'error');
