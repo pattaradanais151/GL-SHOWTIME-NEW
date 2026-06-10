@@ -1,6 +1,8 @@
 const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
 const CHAT_ID = import.meta.env.VITE_TELEGRAM_CHAT_ID;
 
+console.log("Token:", BOT_TOKEN ? "มีค่า" : "ไม่มีค่า", "ChatID:", CHAT_ID);
+
 // ดึง IP Address ของผู้ใช้
 export const getClientIP = async () => {
     try {
