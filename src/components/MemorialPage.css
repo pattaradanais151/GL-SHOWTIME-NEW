@@ -1,0 +1,118 @@
+.memorial-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(10, 10, 10, 0.85); /* พื้นหลังสีดำโปร่งแสง 85% */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 99999; /* ดันให้อยู่เลเยอร์บนสุดเหนือ Navbar/Footer */
+  font-family: 'Sarabun', 'Prompt', sans-serif;
+  box-sizing: border-box;
+}
+
+.memorial-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 500px;
+  height: 500px;
+  background-color: rgba(255, 255, 255, 0.02);
+  border-radius: 50%;
+  filter: blur(60px);
+  pointer-events: none;
+}
+
+.memorial-content {
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 50px;
+  max-width: 800px;
+  text-align: center;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+  border-radius: 20px;
+  transition: background-color 0.4s ease;
+}
+
+.memorial-content:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.memorial-icon-wrapper {
+  margin-bottom: 25px;
+}
+
+.memorial-ribbon {
+  width: 50px;
+  height: 50px;
+  color: #d1d5db;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5));
+}
+
+.memorial-text {
+  font-size: 1.3rem;
+  font-weight: 300;
+  color: #e5e7eb;
+  line-height: 1.8;
+  letter-spacing: 0.5px;
+  margin-bottom: 20px;
+}
+
+.memorial-name {
+  font-weight: 500;
+  color: #ffffff;
+  display: block;
+  margin-top: 15px;
+}
+
+.memorial-footer-text {
+  font-size: 0.95rem;
+  color: #9ca3af;
+  margin-top: 20px;
+  margin-bottom: 40px;
+  letter-spacing: 0.5px;
+}
+
+.memorial-btn {
+  padding: 10px 30px;
+  background-color: transparent;
+  border: 1px solid #6b7280;
+  color: #d1d5db;
+  border-radius: 50px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+.memorial-btn:hover {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+@media (max-width: 768px) {
+  .memorial-content {
+    padding: 30px 20px;
+    width: 90%;
+  }
+  .memorial-text {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+  .memorial-name {
+    font-size: 1.1rem;
+  }
+}

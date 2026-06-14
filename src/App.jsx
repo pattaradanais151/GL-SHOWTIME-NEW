@@ -16,6 +16,11 @@ import OfflineFallback from './components/OfflineFallback';
 import ReloadPrompt from './components/ReloadPrompt';
 
 // ==========================================
+// หน้าไว้อาลัย Overlay (วางทับเป็นฉากหน้าสุด)
+// ==========================================
+import MemorialPage from './components/MemorialPage';
+
+// ==========================================
 // เปลี่ยนการโหลดหน้าเว็บเป็นแบบ Lazy Loading
 // ==========================================
 const Home = lazy(() => import('./pages/Home'));
@@ -41,6 +46,18 @@ function App() {
   const [session, setSession] = useState(localStorage.getItem('isAdmin') === 'true');
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
   const [communityUser, setCommunityUser] = useState(null);
+
+  // ==========================================
+  // ใช้ sessionStorage เพื่อจำว่าผู้ใช้เคยกดเข้าเว็บไซต์ไปแล้วหรือยัง
+  // ==========================================
+  const [hasEnteredSite, setHasEnteredSite] = useState(() => {
+    return sessionStorage.getItem('hasEnteredMemorial') === 'true';
+  });
+
+  const handleEnterSite = () => {
+    setHasEnteredSite(true);
+    sessionStorage.setItem('hasEnteredMemorial', 'true');
+  };
 
   // ตรวจสอบการล็อกอินของ User ในฝั่ง Community
   useEffect(() => {
@@ -71,6 +88,11 @@ function App() {
 
   return (
     <HelmetProvider>
+      {/* ==========================================
+          แสดงหน้าไว้อาลัย (Overlay วางทับบนสุด)
+          ========================================== */}
+      {!hasEnteredSite && <MemorialPage onEnterSite={handleEnterSite} />}
+
       <LanguageProvider>
         <Router>
           <div className="app-wrapper">
