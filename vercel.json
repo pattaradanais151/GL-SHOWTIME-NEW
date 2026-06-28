@@ -1,4 +1,10 @@
 {
+  "crons": [
+    {
+      "path": "/api/cron/schedule-notify",
+      "schedule": "*/15 * * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
@@ -28,7 +34,7 @@
       "destination": "https://your-external-analytics.com/:match*"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]

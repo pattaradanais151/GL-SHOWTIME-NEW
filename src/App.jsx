@@ -8,6 +8,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { supabase } from './utils/supabase';
+import { useScheduleNotifier } from './hooks/useScheduleNotifier';
 
 // ==========================================
 // PWA Components (นำเข้า Component สำหรับแจ้งเตือน PWA)
@@ -43,6 +44,8 @@ const ProtectedRoute = ({ children, session }) => {
 };
 
 function App() {
+  useScheduleNotifier();
+
   const [session, setSession] = useState(localStorage.getItem('isAdmin') === 'true');
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
   const [communityUser, setCommunityUser] = useState(null);

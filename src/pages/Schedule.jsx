@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../utils/supabase';
-import { Calendar, Clock, Tv, Star, HelpCircle, X, PlayCircle, Info, User } from 'lucide-react';
+import { Calendar, Clock, Tv, Star, HelpCircle, X, PlayCircle, Info, User, Bell } from 'lucide-react';
 import { getYoutubeThumbnail } from '../utils/youtube';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -86,6 +86,18 @@ const Schedule = () => {
         <span className="gl-subtitle">{t('schedule.subtitle') || 'อัปเดตทุกสัปดาห์'}</span>
         <h1 className="gl-title">{t('schedule.title') || 'ตารางออนแอร์'}</h1>
         <p className="gl-desc">{t('schedule.desc') || 'ติดตามเวลาออกอากาศของซีรีส์ที่คุณชื่นชอบ'}</p>
+      </div>
+
+      <div className="glass-panel" style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '1rem 1.25rem', marginBottom: '2rem', borderLeft: '3px solid var(--pink-accent)' }}>
+        <Bell size={20} color="var(--pink-accent)" style={{ flexShrink: 0, marginTop: 2 }} />
+        <div>
+          <div style={{ fontWeight: 600, marginBottom: '0.25rem', fontSize: '0.95rem' }}>
+            {t('schedule.notify_title') || 'แจ้งเตือน Telegram อัตโนมัติ'}
+          </div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.6, margin: 0 }}>
+            {t('schedule.notify_desc') || 'ระบบจะส่งสรุปตารางวันนี้เวลา 08:00 น. และแจ้งเตือนก่อนออนแอร์ 30 นาที ไปยัง Telegram ของทีมงาน'}
+          </p>
+        </div>
       </div>
 
       {/* Domain Toggle (GL / BL / ทั้งหมด) */}

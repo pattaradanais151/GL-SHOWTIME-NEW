@@ -72,7 +72,9 @@ const translations = {
       unknown_day: "❓ ยังไม่ทราบวันฉาย",
       movies_count: "เรื่อง",
       trailer: "ดูตัวอย่าง",
-      admin_note: "ADMIN NOTE"
+      admin_note: "ADMIN NOTE",
+      notify_title: "แจ้งเตือน Telegram อัตโนมัติ",
+      notify_desc: "ระบบจะส่งสรุปตารางวันนี้เวลา 08:00 น. และแจ้งเตือนก่อนออนแอร์ 30 นาที ไปยัง Telegram ของทีมงาน"
     },
     donate: {
       title: "สนับสนุนเว็บไซต์",
@@ -145,7 +147,9 @@ const translations = {
       unknown_day: "❓ Unknown Air Date",
       movies_count: "Movies",
       trailer: "Watch Trailer",
-      admin_note: "ADMIN NOTE"
+      admin_note: "ADMIN NOTE",
+      notify_title: "Automatic Telegram Alerts",
+      notify_desc: "Daily schedule summary at 08:00 and a 30-minute pre-air reminder are sent to the team Telegram channel."
     },
     donate: {
       title: "Support Us",
@@ -218,7 +222,9 @@ const translations = {
       unknown_day: "❓ 放送日未定",
       movies_count: "作品",
       trailer: "予告編を見る",
-      admin_note: "管理者メモ"
+      admin_note: "管理者メモ",
+      notify_title: "Telegram 自動通知",
+      notify_desc: "毎日 08:00 に本日のスケジュール概要、放送 30 分前にリマインダーを Telegram に送信します"
     },
     donate: {
       title: "ウェブサイトを支援",
@@ -291,7 +297,9 @@ const translations = {
       unknown_day: "❓ บะฮู้วันฉายเตื้อ",
       movies_count: "เรื่อง",
       trailer: "ผ่อตัวอย่าง",
-      admin_note: "ADMIN NOTE"
+      admin_note: "ADMIN NOTE",
+      notify_title: "แจ้งเตือน Telegram อัตโนมัติ",
+      notify_desc: "ระบบจะส่งสรุปต๋ารางวันนี้เวลา 08:00 โมง และแจ้งก่อนออนแอร์ 30 นาที ไป Telegram ทีมงาน"
     },
     donate: {
       title: "อุดหนุนเว็บไซต์",

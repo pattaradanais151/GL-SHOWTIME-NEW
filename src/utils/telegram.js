@@ -1,3 +1,8 @@
+import {
+    buildDailyDigestMessage,
+    buildReminderMessage,
+} from '../../lib/scheduleNotify.js';
+
 const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
 const CHAT_ID = import.meta.env.VITE_TELEGRAM_CHAT_ID;
 
@@ -92,4 +97,14 @@ export const notifyMovieAction = async (action, movieTitle, movieType, adminName
     ].join('\n');
 
     await sendTelegramMessage(text);
+};
+
+export const notifyScheduleDigest = async (movies) => {
+    const message = buildDailyDigestMessage(movies);
+    await sendTelegramMessage(message);
+};
+
+export const notifyScheduleReminder = async (movie) => {
+    const message = buildReminderMessage(movie);
+    await sendTelegramMessage(message);
 };
