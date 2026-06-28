@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/react";
 
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import NotFound from './pages/NotFound';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { supabase } from './utils/supabase';
 import { useScheduleNotifier } from './hooks/useScheduleNotifier';
@@ -138,6 +139,7 @@ function App() {
                     />
                     <Route path="/privacy" element={<PrivacyPolicy />} />
                     <Route path="/license" element={<License />} />
+                    <Route path="*" element={<NotFound />} />
                   </Routes>
                 </Suspense>
               </div>

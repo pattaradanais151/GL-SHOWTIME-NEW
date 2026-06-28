@@ -2,10 +2,19 @@
   "crons": [
     {
       "path": "/api/cron/schedule-notify",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 0 * * *"
     }
   ],
   "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
     {
       "source": "/(.*)",
       "headers": [
@@ -23,7 +32,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; frame-src 'self' https://www.youtube.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://snap.licdn.com https://static.cloudflareinsights.com https://www.googletagmanager.com https://www.google-analytics.com; connect-src 'self' https://aptabase.com https://*.supabase.co https://px.ads.linkedin.com https://api.ipify.org https://api4.my-ip.io https://api.seeip.org https://api.telegram.org https://cloudflareinsights.com https://cdn-cgi.cloudflareinsights.com https://www.google-analytics.com; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;"
+          "value": "default-src 'self'; frame-src 'self' https://www.youtube.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://snap.licdn.com https://static.cloudflareinsights.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://analytics.tiktok.com; connect-src 'self' https://aptabase.com https://*.supabase.co https://px.ads.linkedin.com https://api.ipify.org https://api4.my-ip.io https://api.seeip.org https://api.telegram.org https://cloudflareinsights.com https://cdn-cgi.cloudflareinsights.com https://www.google-analytics.com https://www.facebook.com https://analytics.tiktok.com; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;"
         }
       ]
     }

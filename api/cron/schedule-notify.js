@@ -1,11 +1,7 @@
 import {
   buildDailyDigestMessage,
-  buildReminderMessage,
   fetchScheduleMovies,
   getBangkokDateKey,
-  getMovieNotifyKey,
-  getUpcomingReminders,
-  shouldSendDailyDigest,
 } from '../../lib/scheduleNotify.js';
 import { sendTelegramMessage } from '../../lib/telegramSend.js';
 
@@ -34,26 +30,21 @@ export default async function handler(req, res) {
   }
 
   const now = new Date();
-  const sent = { digest: false, reminders: [] };
+  const sent = { digest: false };
 
   try {
+    // 1. ดึงข้อมูลหนังทั้งหมด
     const movies = await fetchScheduleMovies(supabaseUrl, supabaseKey);
 
-    if (shouldSendDailyDigest(now)) {
-      const digestKey = `digest_${getBangkokDateKey(now)}`;
-      const message = buildDailyDigestMessage(movies, now);
-      const result = await sendTelegramMessage(message, botToken, chatId);
-      sent.digest = result.ok;
-      sent.digestKey = digestKey;
-    }
-
-    const reminders = getUpcomingReminders(movies, now);
-    for (const movie of reminders) {
-      const message = buildReminderMessage(movie);
-      const result = await sendTelegramMessage(message, botToken, chatId);
-      if (result.ok) {
-        sent.reminders.push(getMovieNotifyKey(movie));
-      }
+    // 2. สร้างข้อความสรุปรายวัน (Daily Digest) และส่ง Telegram
+    const digestKey = `digest_${getBangkokDateKey(now)}`;
+    const message = buildDailyDigestMessage(movies, now);
+    
+    // ตรวจสอบว่ามีข้อความให้ส่งหรือไม่ (ป้องกันการส่งข้อความว่าง)
+    if (message && message.trim() !== "") {
+        const result = await sendTelegramMessage(message, botToken, chatId);
+        sent.digest = result.ok;
+        sent.digestKey = digestKey;
     }
 
     return res.status(200).json({
