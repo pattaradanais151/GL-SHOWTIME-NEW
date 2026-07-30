@@ -1,7 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
-import { init } from '@aptabase/web';
 import { Analytics } from "@vercel/analytics/react";
 
 import Navbar from './components/Navbar';
@@ -11,35 +10,23 @@ import { LanguageProvider } from './contexts/LanguageContext';
 import { supabase } from './utils/supabase';
 import { useScheduleNotifier } from './hooks/useScheduleNotifier';
 
-// ==========================================
-// PWA Components (นำเข้า Component สำหรับแจ้งเตือน PWA)
-// ==========================================
 import OfflineFallback from './components/OfflineFallback';
 import ReloadPrompt from './components/ReloadPrompt';
 
-// ==========================================
-// หน้าไว้อาลัย Overlay (วางทับเป็นฉากหน้าสุด)
-// ==========================================
-import MemorialPage from './components/MemorialPage';
-
-// ==========================================
-// เปลี่ยนการโหลดหน้าเว็บเป็นแบบ Lazy Loading
-// ==========================================
+// Lazy Load Pages
 const Home = lazy(() => import('./pages/Home'));
-const HomeBL = lazy(() => import('./pages/HomeBL')); // 👉 สเต็ป 3: เพิ่มการดึงหน้าแรกของ BL เข้ามาตรงนี้
+const HomeBL = lazy(() => import('./pages/HomeBL'));
 const Login = lazy(() => import('./pages/Login'));
+const GuestLogin = lazy(() => import('./pages/GuestLogin'));
+const GuestDashboard = lazy(() => import('./pages/GuestDashboard'));
 const Admin = lazy(() => import('./pages/Admin'));
 const Schedule = lazy(() => import('./pages/Schedule'));
 const Donate = lazy(() => import('./pages/Donate'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const License = lazy(() => import('./pages/License'));
 const CommunityFeed = lazy(() => import('./pages/CommunityFeed'));
-const CommunityAuth = lazy(() => import('./pages/CommunityAuth'));
 
-// ปิด Aptabase ไว้ชั่วคราวเพื่อไม่ให้ขึ้น Error แจ้งเตือนสีแดง (จนกว่าจะมี Key จริง)
-// init("A-TH-YOUR_APTABASE_KEY"); 
-
-const ProtectedRoute = ({ children, session }) => {
+const ProtectedAdminRoute = ({ children, session }) => {
   if (!session) return <Navigate to="/login" replace />;
   return children;
 };
@@ -47,41 +34,41 @@ const ProtectedRoute = ({ children, session }) => {
 function App() {
   useScheduleNotifier();
 
-  const [session, setSession] = useState(localStorage.getItem('isAdmin') === 'true');
+  // State สำหรับแยกระบบ Authentication
+  const [adminSession, setAdminSession] = useState(false);
+  const [guestUser, setGuestUser] = useState(null);
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
-  const [communityUser, setCommunityUser] = useState(null);
 
-  // ==========================================
-  // ใช้ sessionStorage เพื่อจำว่าผู้ใช้เคยกดเข้าเว็บไซต์ไปแล้วหรือยัง
-  // ==========================================
-  const [hasEnteredSite, setHasEnteredSite] = useState(() => {
-    return sessionStorage.getItem('hasEnteredMemorial') === 'true';
-  });
-
-  const handleEnterSite = () => {
-    setHasEnteredSite(true);
-    sessionStorage.setItem('hasEnteredMemorial', 'true');
-  };
-
-  // ตรวจสอบการล็อกอินของ User ในฝั่ง Community
   useEffect(() => {
+    // 1. ตรวจสอบสถานะ Admin (Supabase Auth)
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setCommunityUser(session?.user ?? null);
+      setAdminSession(!!session);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setCommunityUser(session?.user ?? null);
+      setAdminSession(!!session);
     });
+
+    // 2. ตรวจสอบสถานะ Guest (LocalStorage จากตาราง guestlogin)
+    const storedGuest = localStorage.getItem('guestUser');
+    if (storedGuest) {
+      try {
+        setGuestUser(JSON.parse(storedGuest));
+      } catch (error) {
+        console.error("Failed to parse guest user");
+      }
+    }
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // จัดการ Theme (Dark / Light Mode)
+  // จัดการ Theme Light / Dark (ตามมาตรฐาน Tailwind)
   useEffect(() => {
+    const htmlElement = document.documentElement;
     if (theme === 'light') {
-      document.body.classList.add('light-mode');
+      htmlElement.classList.remove('dark');
     } else {
-      document.body.classList.remove('light-mode');
+      htmlElement.classList.add('dark');
     }
     localStorage.setItem('theme', theme);
   }, [theme]);
@@ -92,61 +79,61 @@ function App() {
 
   return (
     <HelmetProvider>
-      {/* ==========================================
-          แสดงหน้าไว้อาลัย (Overlay วางทับบนสุด)
-          ========================================== */}
-      {!hasEnteredSite && <MemorialPage onEnterSite={handleEnterSite} />}
-
       <LanguageProvider>
         <Router>
-          <div className="app-wrapper">
-            {/* โครงสร้าง SEO กลาง */}
+          {/* อัปเดตคลาสพื้นหลังตรงนี้ให้รองรับ Light/Dark Mode */}
+          <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-[#0f1015] text-gray-900 dark:text-white transition-colors duration-300 font-prompt">
             <Helmet>
-              <meta name="theme-color" content={theme === 'dark' ? '#0f1015' : '#f0f2f5'} />
+              <meta name="theme-color" content={theme === 'dark' ? '#0f1015' : '#f9fafb'} />
             </Helmet>
 
-            {/* ========================================== */}
-            {/* แสดง PWA UI (ทำงานอัตโนมัติ in ทุกหน้า) */}
-            {/* ========================================== */}
             <OfflineFallback />
             <ReloadPrompt />
 
-            <Navbar session={session} setSession={setSession} theme={theme} toggleTheme={toggleTheme} />
+            <Navbar 
+              adminSession={adminSession} 
+              guestUser={guestUser} 
+              theme={theme} 
+              toggleTheme={toggleTheme} 
+            />
             
-            <div className="main-content">
-              <div className="container">
-                {/* Suspense คือตัวรอโหลดระหว่างสลับหน้า */}
-                <Suspense fallback={
-                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh', color: '#ff2a7a', fontSize: '1.2rem', fontFamily: "'Prompt', sans-serif" }}>
-                    กำลังโหลดข้อมูล...
-                  </div>
-                }>
-                  <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/bl" element={<HomeBL />} /> {/* 👉 สเต็ป 3: เพิ่มปุ่มเส้นทาง URL สำหรับหน้าแรกของ BL ตรงนี้ */}
-                    <Route path="/community" element={<CommunityFeed currentUser={communityUser} isAdmin={session} />} />
-                    <Route path="/community/auth" element={!communityUser ? <CommunityAuth /> : <Navigate to="/community" />} />
-                    <Route path="/schedule" element={<Schedule />} />
-                    <Route path="/donate" element={<Donate />} />
-                    <Route path="/login" element={!session ? <Login setSession={setSession} /> : <Navigate to="/admin" />} />
-                    <Route 
-                      path="/admin" 
-                      element={
-                        <ProtectedRoute session={session}>
-                          <Admin />
-                        </ProtectedRoute>
-                      } 
-                    />
-                    <Route path="/privacy" element={<PrivacyPolicy />} />
-                    <Route path="/license" element={<License />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </Suspense>
-              </div>
+            <div className="flex-1 w-full">
+              <Suspense fallback={
+                <div className="flex justify-center items-center h-[50vh] text-pink-500 text-lg font-bold">
+                  กำลังโหลดข้อมูล...
+                </div>
+              }>
+                <Routes>
+                  <Route path="/" element={<Home currentUser={guestUser} />} />
+                  <Route path="/bl" element={<HomeBL currentUser={guestUser} />} />
+                  <Route path="/schedule" element={<Schedule />} />
+                  <Route path="/donate" element={<Donate />} />
+                  <Route path="/community" element={<CommunityFeed currentUser={guestUser} isAdmin={adminSession} />} />
+                  
+                  {/* ระบบของ Guest */}
+                  <Route path="/auth" element={!guestUser ? <GuestLogin /> : <Navigate to="/" />} />
+                  <Route path="/guest" element={guestUser ? <GuestDashboard /> : <Navigate to="/auth" />} />
+                  
+                  {/* ระบบของ Admin */}
+                  <Route path="/login" element={!adminSession ? <Login setSession={setAdminSession} /> : <Navigate to="/admin" />} />
+                  <Route 
+                    path="/admin" 
+                    element={
+                      <ProtectedAdminRoute session={adminSession}>
+                        <Admin />
+                      </ProtectedAdminRoute>
+                    } 
+                  />
+
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/license" element={<License />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
             </div>
             
             <Footer />
-            <Analytics /> {/* Vercel Analytics */}
+            <Analytics />
           </div>
         </Router>
       </LanguageProvider>

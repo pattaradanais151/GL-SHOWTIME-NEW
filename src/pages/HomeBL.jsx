@@ -2,26 +2,38 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabase'; 
 import { useLanguage } from '../contexts/LanguageContext';
-import { notifyVisit } from '../utils/telegram'; // นำเข้าฟังก์ชันแจ้งเตือน
+import { notifyVisit } from '../utils/telegram'; 
+import { 
+  Search, Star, X, PlayCircle, BookmarkPlus, BookmarkCheck, 
+  MessageSquare, Calendar, Clock, Tv, User, Info, AlertCircle, CheckCircle
+} from 'lucide-react';
 
 const ITEMS_PER_PAGE = 12;
 
-export default function HomeBL() {
+export default function HomeBL({ currentUser }) {
   const { t, language } = useLanguage();
+  
   const [movies, setMovies] = useState([]);
   const [filteredMovies, setFilteredMovies] = useState([]);
-  const [loading, setLoading] = useState(true);
-  
   const [heroMovies, setHeroMovies] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [selectedMovie, setSelectedMovie] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('All Genres');
   const [selectedPlatform, setSelectedPlatform] = useState('All Platforms');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
-  
-  const [selectedMovie, setSelectedMovie] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [sortBy, setSortBy] = useState('latest');
+
+  const [watchlist, setWatchlist] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [newReview, setNewReview] = useState('');
+  const [newRating, setNewRating] = useState(5);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
   const tPage = {
     th: { prev: "ก่อนหน้า", next: "ถัดไป", page: "หน้า", of: "จาก" },
@@ -37,7 +49,11 @@ export default function HomeBL() {
     { id: 'SOON', label: t('home.status_soon') || 'Coming Soon' }
   ];
 
-  // แจ้งเตือนเมื่อมีการเข้าชมหน้าเว็บ BL
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: '', type }), 3000);
+  };
+
   useEffect(() => {
     notifyVisit('หน้าหลัก (BL)');
   }, []);
@@ -71,6 +87,20 @@ export default function HomeBL() {
   }, []);
 
   useEffect(() => {
+    const fetchWatchlist = async () => {
+      if (!currentUser) return;
+      try {
+        const { data, error } = await supabase.from('watchlists').select('movie_id').eq('user_id', currentUser.id).eq('domain', 'BL');
+        if (error) throw error;
+        if (data) setWatchlist(data.map(item => item.movie_id));
+      } catch (error) {
+        console.error("Watchlist Fetch Error:", error.message);
+      }
+    };
+    fetchWatchlist();
+  }, [currentUser]);
+
+  useEffect(() => {
     if (heroMovies.length <= 1) return;
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroMovies.length);
@@ -79,10 +109,10 @@ export default function HomeBL() {
   }, [heroMovies]);
 
   useEffect(() => {
-    let result = movies;
+    let result = [...movies];
+    
     if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(m => m.title?.toLowerCase().includes(term));
+      result = result.filter(m => m.title?.toLowerCase().includes(searchTerm.toLowerCase()));
     }
     if (selectedGenre !== 'All Genres') result = result.filter(m => m.genre === selectedGenre);
     if (selectedPlatform !== 'All Platforms') result = result.filter(m => m.platform === selectedPlatform);
@@ -96,15 +126,21 @@ export default function HomeBL() {
         return false;
       });
     }
+
+    if (sortBy === 'rating_high') {
+      result.sort((a, b) => (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0));
+    } else if (sortBy === 'title_a_z') {
+      result.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+    } else {
+      result.sort((a, b) => b.id - a.id);
+    }
+
     setFilteredMovies(result);
     setCurrentPage(1);
-  }, [searchTerm, selectedGenre, selectedPlatform, selectedStatus, movies]);
+  }, [searchTerm, selectedGenre, selectedPlatform, selectedStatus, sortBy, movies]);
 
   const totalPages = Math.ceil(filteredMovies.length / ITEMS_PER_PAGE);
-  const paginatedMovies = filteredMovies.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+  const paginatedMovies = filteredMovies.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   const getYoutubeId = (url) => {
     if (!url) return null;
@@ -120,46 +156,114 @@ export default function HomeBL() {
     return 'https://via.placeholder.com/1280x720/2a2a32/FFFFFF?text=No+Cover';
   };
 
-  const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>;
-  const StarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/></svg>;
-  const CloseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/></svg>;
-  const PlayIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M11.596 8.697l-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/></svg>;
-
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
-    window.scrollTo({ top: document.querySelector('.section-header').offsetTop - 100, behavior: 'smooth' });
+    window.scrollTo({ top: document.getElementById('movie-section').offsetTop - 100, behavior: 'smooth' });
+  };
+
+  const handleMovieClick = async (movie) => {
+    setSelectedMovie(movie);
+    try {
+      const { data, error } = await supabase.from('reviews')
+        .select('*, profiles(username)')
+        .eq('movie_id', movie.id)
+        .eq('domain', 'BL')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      if (data) setReviews(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const toggleWatchlist = async (e, movieId) => {
+    e.stopPropagation();
+    if (!currentUser) return showToast('กรุณาเข้าสู่ระบบก่อนเพิ่มเข้ารายการโปรด', 'error');
+    
+    try {
+      const isSaved = watchlist.includes(movieId);
+      if (isSaved) {
+        const { error } = await supabase.from('watchlists').delete().eq('user_id', currentUser.id).eq('movie_id', movieId).eq('domain', 'BL');
+        if (error) throw error;
+        setWatchlist(prev => prev.filter(id => id !== movieId));
+        showToast('ลบออกจากรายการโปรดแล้ว', 'success');
+      } else {
+        const { error } = await supabase.from('watchlists').insert([{ user_id: currentUser.id, movie_id: movieId, domain: 'BL' }]);
+        if (error) throw error;
+        setWatchlist(prev => [...prev, movieId]);
+        showToast('เพิ่มเข้ารายการโปรดแล้ว!', 'success');
+      }
+    } catch (error) {
+      showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
+      console.error(error);
+    }
+  };
+
+  const submitReview = async (e) => {
+    e.preventDefault();
+    if (!currentUser) return showToast('กรุณาเข้าสู่ระบบเพื่อรีวิว', 'error');
+    setIsSubmittingReview(true);
+    
+    try {
+      const { error } = await supabase.from('reviews').insert([{
+        user_id: currentUser.id, movie_id: selectedMovie.id, domain: 'BL', rating: newRating, review_text: newReview
+      }]);
+
+      if (error) throw error;
+
+      setNewReview('');
+      showToast('ส่งรีวิวสำเร็จ! ขอบคุณสำหรับความคิดเห็น', 'success');
+      const { data } = await supabase.from('reviews').select('*, profiles(username)').eq('movie_id', selectedMovie.id).eq('domain', 'BL').order('created_at', { ascending: false });
+      if (data) setReviews(data);
+    } catch (error) {
+      showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
+      console.error(error);
+    } finally {
+      setIsSubmittingReview(false);
+    }
   };
 
   return (
-    <div className="home-wrapper">
-      <div className="container">
+    <div className="flex flex-col min-h-screen font-prompt">
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className={`fixed bottom-8 right-4 md:right-8 z-[9999] flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl backdrop-blur-xl border animate-in fade-in slide-in-from-bottom-5 ${
+          toast.type === 'success' ? 'bg-emerald-500/90 border-emerald-400 text-white' : 'bg-red-500/90 border-red-400 text-white'
+        }`}>
+          {toast.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
+          <span className="font-medium">{toast.message}</span>
+        </div>
+      )}
+
+      <div className="container mx-auto px-4 py-8">
+        {/* HERO SLIDER */}
         {!loading && heroMovies.length > 0 && (
-          <div className="hero-slider-container">
+          <div className="relative w-full aspect-[16/9] md:aspect-[21/9] min-h-[350px] md:min-h-[400px] rounded-2xl overflow-hidden mb-12 shadow-2xl bg-black group">
             {heroMovies.map((movie, index) => (
               <div 
                 key={movie.id} 
-                className={`hero-slide ${index === currentSlide ? 'active' : ''}`}
-                onClick={() => setSelectedMovie(movie)}
+                className={`absolute inset-0 transition-opacity duration-700 ease-in-out cursor-pointer ${index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+                onClick={() => handleMovieClick(movie)}
               >
-                <img src={getCoverImage(movie)} alt={movie.title} className="hero-slide-bg" />
-                <div className="hero-slide-overlay"></div>
-                <div className="hero-slide-content">
-                  <span className="hero-badge">{movie.status || 'ON AIR'}</span>
-                  <h1>{movie.title}</h1>
-                  <p className="hero-genre">{movie.genre} {movie.rating ? `• ${movie.rating}` : ''}</p>
-                  <p className="hero-synopsis">{movie.admin_note ? movie.admin_note.substring(0, 150) + '...' : ''}</p>
-                  <button className="cta-btn">
-                    <PlayIcon /> ดูข้อมูลเพิ่มเติม
+                <img src={getCoverImage(movie)} alt={movie.title} className={`w-full h-full object-cover object-[center_20%] transition-transform duration-[6000ms] ease-out ${index === currentSlide ? 'scale-100' : 'scale-105'}`} />
+                <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-gray-900/95 via-gray-900/60 to-transparent"></div>
+                <div className="absolute bottom-6 left-4 right-4 md:top-1/2 md:left-12 md:-translate-y-1/2 md:w-1/2 z-20 text-white flex flex-col md:block items-center md:items-start text-center md:text-left">
+                  <span className="inline-block bg-[#4db8ff] text-white px-3 py-1 rounded text-xs font-bold mb-3 uppercase tracking-widest">{movie.status || 'ON AIR'}</span>
+                  <h1 className="font-serif text-2xl md:text-4xl font-bold mb-2 leading-tight drop-shadow-md line-clamp-2">{movie.title}</h1>
+                  <p className="text-[#4db8ff] font-medium mb-2 md:mb-4 text-sm md:text-base">{movie.genre} {movie.rating ? `• ${movie.rating}` : ''}</p>
+                  <p className="hidden md:block text-gray-300 text-sm leading-relaxed mb-6 line-clamp-3 drop-shadow-md">{movie.admin_note ? movie.admin_note : ''}</p>
+                  <button className="bg-[#4db8ff] hover:bg-blue-500 text-white px-6 py-2.5 rounded-full font-bold transition-all duration-300 flex items-center gap-2 shadow-[0_4px_15px_rgba(77,184,255,0.4)] hover:-translate-y-0.5 hover:scale-105">
+                    <PlayCircle size={20} /> ดูข้อมูลเพิ่มเติม
                   </button>
                 </div>
               </div>
             ))}
             
-            <div className="hero-indicators">
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 md:left-auto md:right-8 md:translate-x-0 flex gap-2 z-20">
               {heroMovies.map((_, index) => (
                 <button 
                   key={index} 
-                  className={`indicator-dot ${index === currentSlide ? 'active' : ''}`}
+                  className={`h-2.5 rounded-full transition-all duration-300 ${index === currentSlide ? 'w-6 bg-[#4db8ff]' : 'w-2.5 bg-white/40 hover:bg-white/60'}`}
                   onClick={(e) => { e.stopPropagation(); setCurrentSlide(index); }}
                 />
               ))}
@@ -167,43 +271,51 @@ export default function HomeBL() {
           </div>
         )}
 
-        <div className="filter-section">
-          <div className="search-wrapper-home">
-            <div className="search-icon"><SearchIcon /></div>
+        {/* ADVANCED FILTERS */}
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 md:p-8 mb-12 shadow-lg">
+          <div className="relative w-full max-w-2xl mx-auto mb-6">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
             <input 
               type="text" 
               placeholder={t('home.search') || "ค้นหาชื่อภาพยนตร์..."} 
               value={searchTerm} 
               onChange={(e) => setSearchTerm(e.target.value)} 
-              className="search-input-home"
+              className="w-full bg-black/20 border border-white/10 text-white rounded-xl pl-12 pr-4 py-3 backdrop-blur-md focus:outline-none focus:bg-black/40 focus:border-[#4db8ff] focus:ring-1 focus:ring-[#4db8ff]/30 transition-all duration-300 placeholder:text-gray-500"
             />
           </div>
           
-          <div className="filter-dropdowns">
-            <select value={selectedGenre} onChange={(e) => setSelectedGenre(e.target.value)} className="filter-select">
-              <option value="All Genres">{t('home.all_genres') || 'All Genres'}</option>
+          <div className="flex flex-wrap justify-center gap-4 w-full mb-6">
+            <select value={selectedGenre} onChange={(e) => setSelectedGenre(e.target.value)} className="flex-1 min-w-[150px] max-w-[250px] bg-black/20 border border-white/10 text-gray-200 rounded-xl px-4 py-2.5 backdrop-blur-md focus:outline-none focus:border-[#4db8ff] transition-colors [&>option]:bg-gray-900 cursor-pointer appearance-none">
+              <option value="All Genres">{t('home.all_genres') || 'หมวดหมู่ทั้งหมด'}</option>
               <option>Drama Romance</option>
               <option>Fantasy</option>
               <option>Romance</option>
               <option>Drama</option>
               <option>Comedy</option>
             </select>
-            <select value={selectedPlatform} onChange={(e) => setSelectedPlatform(e.target.value)} className="filter-select">
-              <option value="All Platforms">{t('home.all_platforms') || 'All Platforms'}</option>
+
+            <select value={selectedPlatform} onChange={(e) => setSelectedPlatform(e.target.value)} className="flex-1 min-w-[150px] max-w-[250px] bg-black/20 border border-white/10 text-gray-200 rounded-xl px-4 py-2.5 backdrop-blur-md focus:outline-none focus:border-[#4db8ff] transition-colors [&>option]:bg-gray-900 cursor-pointer appearance-none">
+              <option value="All Platforms">{t('home.all_platforms') || 'แพลตฟอร์มทั้งหมด'}</option>
               <option>oneD</option>
               <option>iQIYI</option>
               <option>CH3 Plus</option>
               <option>Netflix</option>
               <option>Youtube</option>
             </select>
+
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="flex-1 min-w-[150px] max-w-[250px] bg-black/20 border border-white/10 text-gray-200 rounded-xl px-4 py-2.5 backdrop-blur-md focus:outline-none focus:border-[#4db8ff] transition-colors [&>option]:bg-gray-900 cursor-pointer appearance-none">
+              <option value="latest">อัปเดตล่าสุด</option>
+              <option value="rating_high">คะแนนสูงสุด</option>
+              <option value="title_a_z">ชื่อเรื่อง (A-Z)</option>
+            </select>
           </div>
 
-          <div className="status-filters">
+          <div className="flex flex-wrap justify-center gap-3">
             {statusOptions.map(stat => (
               <button 
                 key={stat.id} 
                 onClick={() => setSelectedStatus(stat.id)}
-                className={`status-btn ${selectedStatus === stat.id ? 'active' : ''}`}
+                className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 border ${selectedStatus === stat.id ? 'bg-[#4db8ff]/20 text-[#4db8ff] border-[#4db8ff]/50' : 'bg-black/20 text-gray-400 border-white/10 hover:border-white/30 hover:text-white'}`}
               >
                 {stat.label}
               </button>
@@ -211,53 +323,72 @@ export default function HomeBL() {
           </div>
         </div>
 
-        <div className="section-header">
-          <h2>BL Now Showing</h2>
+        <div id="movie-section" className="mb-6 pl-4 border-l-4 border-[#4db8ff]">
+          <h2 className="text-2xl md:text-3xl font-bold text-white">BL Now Showing</h2>
         </div>
 
+        {/* MOVIE GRID */}
         {loading ? (
-          <div className="loading-state">{t('home.loading') || 'กำลังโหลด...'}</div>
+          <div className="text-center py-20 text-[#4db8ff] font-bold text-xl">{t('home.loading') || 'กำลังโหลด...'}</div>
         ) : (
           <>
-            <div className="movie-poster-grid">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {paginatedMovies.length > 0 ? paginatedMovies.map(movie => (
-                <div key={movie.id} className="movie-poster-card" onClick={() => setSelectedMovie(movie)}>
-                  <div className="card-image-container">
-                    <img src={getCoverImage(movie)} alt={movie.title || 'Movie'} className="card-image" />
-                    <div className="rating-overlay">
-                      <StarIcon /> {movie.rating || '-'}
+                <div key={movie.id} className="group relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden cursor-pointer flex flex-col transition-all duration-300 hover:-translate-y-1.5 hover:border-[#4db8ff]/50 hover:shadow-[0_15px_40px_-10px_rgba(77,184,255,0.3)]" onClick={() => handleMovieClick(movie)}>
+                  <div className="relative w-full aspect-[16/9] overflow-hidden bg-black">
+                    <img src={getCoverImage(movie)} alt={movie.title || 'Movie'} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                    
+                    <div className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-sm text-yellow-400 px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1 shadow-lg">
+                      <Star size={12} fill="currentColor" /> {movie.rating || '-'}
                     </div>
+                    
                     {movie.platform && (
-                      <div className="platform-tag">
+                      <div className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider shadow-lg">
                         {movie.platform}
                       </div>
                     )}
+
+                    <button 
+                      className={`absolute top-2 right-2 w-9 h-9 rounded-full flex items-center justify-center backdrop-blur-md transition-all duration-300 shadow-lg ${watchlist.includes(movie.id) ? 'bg-[#4db8ff] border-none text-white' : 'bg-black/50 border border-white/20 text-white hover:bg-[#4db8ff] hover:border-[#4db8ff] hover:scale-110'}`}
+                      onClick={(e) => toggleWatchlist(e, movie.id)}
+                      title={watchlist.includes(movie.id) ? 'ลบออกจากรายการโปรด' : 'เพิ่มในรายการโปรด'}
+                    >
+                      {watchlist.includes(movie.id) ? <BookmarkCheck size={18} /> : <BookmarkPlus size={18} />}
+                    </button>
                   </div>
                   
-                  <div className="card-content">
-                    <h3 className="card-title" title={movie.title}>{movie.title || t('home.no_title')}</h3>
-                    <div className="card-meta">
-                       <span className="card-genre">{movie.genre || 'N/A'}</span>
+                  <div className="p-4 flex flex-col flex-grow">
+                    <h3 className="text-lg font-bold mb-1 text-white truncate" title={movie.title}>{movie.title || t('home.no_title')}</h3>
+                    <div className="text-sm text-gray-400 mb-4">
+                       <span>{movie.genre || 'N/A'}</span>
                     </div>
-                    <button className="card-action-btn">
+                    <div className="mt-auto w-full bg-[#4db8ff]/10 text-[#4db8ff] border border-white/5 py-2.5 rounded-lg font-semibold text-center text-sm transition-all duration-300 group-hover:bg-[#4db8ff] group-hover:text-white group-hover:border-[#4db8ff]">
                       More Details
-                    </button>
+                    </div>
                   </div>
                 </div>
               )) : (
-                <div className="empty-state">{t('home.no_data') || 'ไม่พบข้อมูล'}</div>
+                <div className="col-span-full text-center py-16 text-gray-500 bg-white/5 border border-white/10 border-dashed rounded-2xl">{t('home.no_data') || 'ไม่พบข้อมูล'}</div>
               )}
             </div>
 
             {totalPages > 1 && (
-              <div className="pagination">
-                <button className="page-btn" disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)}>
+              <div className="flex justify-center items-center gap-4 mt-12 mb-8 flex-wrap">
+                <button 
+                  className="bg-white/5 border border-white/10 text-white px-5 py-2.5 rounded-lg cursor-pointer transition-all duration-300 hover:bg-[#4db8ff] hover:border-[#4db8ff] disabled:opacity-40 disabled:cursor-not-allowed font-medium"
+                  disabled={currentPage === 1} 
+                  onClick={() => handlePageChange(currentPage - 1)}
+                >
                   &laquo; {tPage.prev}
                 </button>
-                <span className="page-info">
-                  {tPage.page} {currentPage} {tPage.of} {totalPages}
+                <span className="text-gray-400 font-medium">
+                  {tPage.page} <span className="text-white">{currentPage}</span> {tPage.of} {totalPages}
                 </span>
-                <button className="page-btn" disabled={currentPage === totalPages} onClick={() => handlePageChange(currentPage + 1)}>
+                <button 
+                  className="bg-white/5 border border-white/10 text-white px-5 py-2.5 rounded-lg cursor-pointer transition-all duration-300 hover:bg-[#4db8ff] hover:border-[#4db8ff] disabled:opacity-40 disabled:cursor-not-allowed font-medium"
+                  disabled={currentPage === totalPages} 
+                  onClick={() => handlePageChange(currentPage + 1)}
+                >
                   {tPage.next} &raquo;
                 </button>
               </div>
@@ -266,19 +397,23 @@ export default function HomeBL() {
         )}
       </div>
 
+      {/* MOVIE MODAL */}
       {selectedMovie && (
-        <div className="modal-overlay" onClick={() => setSelectedMovie(null)}>
-          <div className="modal-content-movie" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>{t('home.details') || 'รายละเอียด'}</h2>
-              <button className="modal-close-btn" onClick={() => setSelectedMovie(null)}><CloseIcon /></button>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex justify-center items-center p-4 animate-in fade-in duration-200" onClick={() => setSelectedMovie(null)}>
+          <div className="bg-gray-900/60 backdrop-blur-2xl border border-white/10 w-full max-w-4xl rounded-2xl flex flex-col max-h-[90vh] shadow-2xl relative overflow-hidden" onClick={e => e.stopPropagation()}>
+            
+            <div className="flex justify-between items-center p-5 border-b border-white/10 bg-black/20">
+              <h2 className="text-lg font-bold text-white m-0">{t('home.details') || 'รายละเอียด'}</h2>
+              <button className="bg-white/5 border border-white/10 rounded-full text-gray-400 w-9 h-9 flex items-center justify-center transition-all duration-300 hover:text-white hover:bg-[#4db8ff] hover:border-[#4db8ff] hover:rotate-90" onClick={() => setSelectedMovie(null)}>
+                <X size={18} />
+              </button>
             </div>
 
-            <div className="modal-body">
-              <div className="modal-video-container">
+            <div className="p-6 overflow-y-auto flex-grow custom-scrollbar">
+              <div className="relative w-full pt-[56.25%] mb-6 rounded-xl overflow-hidden bg-black shadow-lg">
                 {getYoutubeId(selectedMovie.youtube_url) ? (
                   <iframe 
-                    className="modal-iframe"
+                    className="absolute inset-0 w-full h-full border-none"
                     src={`https://www.youtube.com/embed/${getYoutubeId(selectedMovie.youtube_url)}?autoplay=1`} 
                     title={selectedMovie.title}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
@@ -286,11 +421,11 @@ export default function HomeBL() {
                   ></iframe>
                 ) : (
                   <>
-                    <img src={getCoverImage(selectedMovie)} alt="Cover" className="modal-cover-img" style={{ opacity: selectedMovie.youtube_url ? 0.4 : 1 }} />
+                    <img src={getCoverImage(selectedMovie)} alt="Cover" className={`absolute inset-0 w-full h-full object-cover ${selectedMovie.youtube_url ? 'opacity-40' : 'opacity-100'}`} />
                     {selectedMovie.youtube_url && (
-                      <div className="modal-play-btn-wrapper">
-                        <a href={selectedMovie.youtube_url} target="_blank" rel="noopener noreferrer" className="modal-play-btn">
-                          <PlayIcon /> Watch Video
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+                        <a href={selectedMovie.youtube_url} target="_blank" rel="noopener noreferrer" className="bg-[#4db8ff] hover:bg-blue-500 text-white px-6 py-3 rounded-full font-bold transition-all duration-300 flex items-center gap-2 shadow-[0_4px_15px_rgba(77,184,255,0.5)] hover:scale-105">
+                          <PlayCircle size={20} /> Watch Video
                         </a>
                       </div>
                     )}
@@ -298,28 +433,93 @@ export default function HomeBL() {
                 )}
               </div>
 
-              <h1 className="modal-movie-title">{selectedMovie.title || t('home.no_title')}</h1>
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+                <h1 className="text-2xl md:text-3xl font-bold text-[#4db8ff] m-0 leading-tight">{selectedMovie.title || t('home.no_title')}</h1>
+                <button 
+                  className={`shrink-0 px-4 py-2 rounded-full flex items-center gap-2 font-medium transition-all duration-300 border ${watchlist.includes(selectedMovie.id) ? 'bg-[#4db8ff] border-[#4db8ff] text-white shadow-[0_0_15px_rgba(77,184,255,0.3)]' : 'bg-transparent border-[#4db8ff]/50 text-[#4db8ff] hover:bg-[#4db8ff]/10'}`}
+                  onClick={(e) => toggleWatchlist(e, selectedMovie.id)}
+                >
+                  {watchlist.includes(selectedMovie.id) ? <><BookmarkCheck size={18}/> บันทึกแล้ว</> : <><BookmarkPlus size={18}/> เก็บไว้ดู</>}
+                </button>
+              </div>
               
-              <div className="modal-tags">
-                {selectedMovie.status && <span className="modal-tag">{selectedMovie.status}</span>}
-                {selectedMovie.genre && <span className="modal-tag">{selectedMovie.genre}</span>}
-                {selectedMovie.platform && <span className="modal-tag">{selectedMovie.platform}</span>}
-                <span className="modal-tag highlight"><StarIcon /> {selectedMovie.rating || '-'}</span>
+              <div className="flex flex-wrap gap-3 mb-6">
+                {selectedMovie.status && <span className="bg-white/5 border border-white/10 text-gray-200 px-3 py-1 rounded-md text-sm font-medium">{selectedMovie.status}</span>}
+                {selectedMovie.genre && <span className="bg-white/5 border border-white/10 text-gray-200 px-3 py-1 rounded-md text-sm font-medium">{selectedMovie.genre}</span>}
+                {selectedMovie.platform && <span className="bg-white/5 border border-white/10 text-gray-200 px-3 py-1 rounded-md text-sm font-medium">{selectedMovie.platform}</span>}
+                <span className="bg-yellow-500/15 border border-yellow-500/30 text-yellow-500 flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-bold"><Star size={14} fill="currentColor"/> {selectedMovie.rating || '-'}</span>
               </div>
 
-              <div className="modal-info-grid">
-                <div><strong>{t('home.director') || 'Director'}</strong> {selectedMovie.director || '-'}</div>
-                <div><strong>{t('home.release_date') || 'Release'}</strong> {selectedMovie.release_date || '-'}</div>
-                <div><strong>{t('home.air_day') || 'Air Day'}</strong> {selectedMovie.air_day || '-'}</div>
-                <div><strong>{t('home.air_time') || 'Air Time'}</strong> {selectedMovie.air_time || '-'}</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 bg-black/20 border border-white/5 p-5 rounded-xl text-sm text-gray-300">
+                <div><strong className="block text-gray-500 text-xs uppercase tracking-wider mb-1 flex items-center gap-1"><User size={12}/> {t('home.director') || 'Director'}</strong> <span className="font-medium text-white">{selectedMovie.director || '-'}</span></div>
+                <div><strong className="block text-gray-500 text-xs uppercase tracking-wider mb-1 flex items-center gap-1"><Calendar size={12}/> {t('home.release_date') || 'Release'}</strong> <span className="font-medium text-white">{selectedMovie.release_date || '-'}</span></div>
+                <div><strong className="block text-gray-500 text-xs uppercase tracking-wider mb-1 flex items-center gap-1"><Calendar size={12}/> {t('home.air_day') || 'Air Day'}</strong> <span className="font-medium text-white">{selectedMovie.air_day || '-'}</span></div>
+                <div><strong className="block text-gray-500 text-xs uppercase tracking-wider mb-1 flex items-center gap-1"><Clock size={12}/> {t('home.air_time') || 'Air Time'}</strong> <span className="font-medium text-white">{selectedMovie.air_time || '-'}</span></div>
               </div>
 
-              <h4>{t('home.synopsis') || 'Synopsis'}</h4>
-              <p className="modal-synopsis">{selectedMovie.admin_note || t('home.no_synopsis') || '-'}</p>
+              <h4 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><Info size={18} className="text-[#4db8ff]"/> {t('home.synopsis') || 'Synopsis'}</h4>
+              <p className="bg-white/5 border border-white/5 p-5 rounded-xl text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{selectedMovie.admin_note || t('home.no_synopsis') || '-'}</p>
+
+              {/* REVIEWS SECTION */}
+              <div className="mt-10 border-t border-white/10 pt-8">
+                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2"><MessageSquare size={20} className="text-[#4db8ff]"/> คะแนนและรีวิวจากผู้ชม</h3>
+                
+                {currentUser ? (
+                  <form onSubmit={submitReview} className="bg-black/20 p-6 rounded-xl border border-white/5 mb-8">
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className="text-sm text-gray-400 mr-2">ให้คะแนน:</span>
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <Star 
+                          key={star} size={24} className="cursor-pointer transition-all duration-200 hover:scale-110"
+                          fill={star <= newRating ? '#eab308' : 'none'} 
+                          color={star <= newRating ? '#eab308' : '#666'} 
+                          onClick={() => setNewRating(star)} 
+                        />
+                      ))}
+                    </div>
+                    <textarea 
+                      className="w-full bg-black/40 border border-white/10 text-white rounded-xl p-4 focus:outline-none focus:border-[#4db8ff] focus:ring-1 focus:ring-[#4db8ff]/30 transition-all duration-300 resize-none placeholder:text-gray-600" 
+                      rows="3" 
+                      placeholder="บอกความรู้สึกของคุณเกี่ยวกับเรื่องนี้หน่อยสิ..." 
+                      value={newReview} onChange={e => setNewReview(e.target.value)} required 
+                    />
+                    <div className="flex justify-end mt-4">
+                      <button type="submit" className="bg-[#4db8ff] hover:bg-blue-500 text-white px-6 py-2.5 rounded-lg font-bold transition-all duration-300 shadow-[0_4px_12px_rgba(77,184,255,0.3)]" disabled={isSubmittingReview}>
+                        {isSubmittingReview ? 'กำลังส่ง...' : 'ส่งรีวิว'}
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="bg-[#4db8ff]/10 border border-[#4db8ff]/20 p-4 rounded-xl text-center text-[#4db8ff] mb-8">
+                    กรุณา <a href="/auth" className="text-white font-bold hover:underline mx-1">เข้าสู่ระบบ</a> เพื่อร่วมเขียนรีวิวและให้คะแนนซีรีส์เรื่องนี้
+                  </div>
+                )}
+                
+                <div className="flex flex-col gap-4">
+                  {reviews.length > 0 ? reviews.map(rev => (
+                    <div key={rev.id} className="bg-white/5 backdrop-blur-md p-5 rounded-xl border border-white/5">
+                      <div className="flex justify-between items-center mb-3">
+                        <strong className="text-white font-medium">{rev.profiles?.username || 'สมาชิก'}</strong>
+                        <div className="flex gap-0.5">
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} size={14} fill={i < rev.rating ? '#eab308' : 'none'} color={i < rev.rating ? '#eab308' : '#444'} />
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-gray-300 text-sm leading-relaxed m-0">{rev.review_text}</p>
+                      <div className="text-[11px] text-gray-500 mt-3 text-right">
+                        {new Date(rev.created_at).toLocaleDateString('th-TH')}
+                      </div>
+                    </div>
+                  )) : (
+                    <div className="text-center py-8 text-gray-500 italic">ยังไม่มีรีวิวสำหรับเรื่องนี้ เป็นคนแรกที่รีวิวสิ!</div>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setSelectedMovie(null)}>
+            <div className="p-4 md:p-5 border-t border-white/10 bg-black/20 flex justify-end">
+              <button className="bg-white/10 hover:bg-white/20 text-white border border-white/10 px-6 py-2 rounded-lg font-medium transition-all duration-300" onClick={() => setSelectedMovie(null)}>
                 {t('home.close') || 'Close'}
               </button>
             </div>

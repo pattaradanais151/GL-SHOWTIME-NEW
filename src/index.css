@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Prompt:wght@300;400;500;700&display=swap');
 
 :root {
@@ -431,4 +435,87 @@ body.light-mode .form-input { background-color: rgba(255, 255, 255, 0.5); }
     width: 100%;
     justify-content: flex-start;
   }
+}
+/* =========================================
+   LIQUID GLASS CUSTOM STYLES & WATCHLIST
+========================================= */
+
+.liquid-glass-panel, .liquid-card, .liquid-modal {
+  background: rgba(20, 20, 25, 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+body.light-mode .liquid-glass-panel,
+body.light-mode .liquid-card,
+body.light-mode .liquid-modal {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+}
+
+.liquid-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(255, 42, 122, 0.4);
+  box-shadow: 0 15px 40px rgba(255, 42, 122, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.liquid-input {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-main);
+  border-radius: 12px;
+  padding: 0.8rem 1rem;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  font-family: 'Prompt', sans-serif;
+}
+
+.liquid-input:focus {
+  outline: none;
+  background: rgba(0, 0, 0, 0.4);
+  border-color: var(--pink-accent);
+  box-shadow: 0 0 15px rgba(255, 42, 122, 0.2);
+}
+
+body.light-mode .liquid-input {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: #000;
+}
+
+/* ปุ่มมุมขวาบนการ์ด */
+.watchlist-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.watchlist-btn:hover {
+  background: var(--pink-accent);
+  border-color: var(--pink-accent);
+  transform: scale(1.1);
+}
+
+.watchlist-btn.saved {
+  background: var(--pink-accent);
+  color: white;
+  border-color: var(--pink-accent);
 }
