@@ -1,95 +1,31 @@
 <!doctype html>
-<html lang="en">
+<html lang="th">
   <head>
     <meta charset="UTF-8" />
-
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" fetchpriority="high" />
-    <link rel="apple-touch-icon" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#ffffff" />
-
-    <title>GL & BL Showtime TH - ตารางออกอากาศและคอมมูนิตี้ซีรีส์ Y</title>
-    <meta name="description" content="แหล่งรวมข้อมูล ตารางออกอากาศ และคอมมูนิตี้สำหรับแฟนคลับซีรีส์ Girl Love (GL) และ Boy Love (BL) ติดตามซีรีส์ที่คุณรักได้ที่นี่ครบจบในเว็บเดียว" />
-    <meta name="keywords" content="Girl Love, Boy Love, GL, BL, ซีรีส์เกิร์ลเลิฟ, ซีรีส์วาย, ยูริ, Yuri, Yaoi, ตารางฉายซีรีส์" />
-
+    <title>GL Showtime</title>
+    
+    <!-- Open Graph Tags -->
+    <meta property="og:title" content="GL Showtime" />
+    <meta property="og:description" content="แพลตฟอร์มจัดการบริการและข้อมูลที่ทันสมัย" />
+    <meta property="og:image" content="https://gl-showtime.vercel.app/og-image.jpg" />
+    <meta property="og:url" content="https://gl-showtime.vercel.app/" />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://yourwebsite.com/" />
-    <meta property="og:title" content="GL & BL Showtime TH - คอมมูนิตี้ซีรีส์ Y" />
-    <meta property="og:description" content="แหล่งรวมข้อมูล ตารางออกอากาศ และคอมมูนิตี้สำหรับแฟนคลับซีรีส์ Girl Love (GL) และ Boy Love (BL)" />
-    <meta property="og:image" content="https://yourwebsite.com/og-image.jpg" />
 
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://yourwebsite.com/" />
-    <meta property="twitter:title" content="GL & BL Showtime TH - คอมมูนิตี้ซีรีส์ Y" />
-    <meta property="twitter:description" content="แหล่งรวมข้อมูล ตารางออกอากาศ และคอมมูนิตี้สำหรับแฟนคลับซีรีส์ Girl Love (GL) และ Boy Love (BL)" />
-    <meta property="twitter:image" content="https://yourwebsite.com/og-image.jpg" />
+    <!-- Google Fonts (Kanit) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <script type="text/javascript">
-      _linkedin_partner_id = "YOUR_LINKEDIN_PARTNER_ID";
-      window._linkedin_data_partner_ids = window._linkedin_data_partner_ids || [];
-      window._linkedin_data_partner_ids.push(_linkedin_partner_id);
-    </script>
-    <script type="text/javascript">
-      (function(l) {
-        if (!l) {
-          window.lintrk = function(a, b) {
-            window.lintrk.q.push([a, b]);
-          };
-          window.lintrk.q = [];
-        }
-        var s = document.getElementsByTagName("script")[0];
-        var b = document.createElement("script");
-        b.type = "text/javascript";
-        b.async = true;
-        b.fetchPriority = "low";
-        b.src = "https://snap.licdn.com/li.lms-analytics/insight.min.js";
-        s.parentNode.insertBefore(b, s);
-      })(window.lintrk);
-    </script>
+    <!-- Priority Hints (สำหรับภาพ Hero Banner) -->
+    <link rel="preload" fetchpriority="high" as="image" href="/hero-bg.jpg" type="image/jpeg">
 
-    <script async fetchpriority="low" src="https://www.googletagmanager.com/gtag/js?id=G-0G3ZG43NQS"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag() { dataLayer.push(arguments); }
-      gtag('js', new Date());
-      gtag('config', 'G-0G3ZG43NQS');
-    </script>
-
-    <script defer fetchpriority="low" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "YOUR_CLOUDFLARE_TOKEN"}'></script>
-
-    <script>
-      !function(f,b,e,v,n,t,s)
-      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-      n.queue=[];t=b.createElement(e);t.async=!0;
-      t.src=v;s=b.getElementsByTagName(e)[0];
-      s.parentNode.insertBefore(t,s)}(window, document,'script',
-      'https://connect.facebook.net/en_US/fbevents.js');
-      fbq('init', 'YOUR_FACEBOOK_PIXEL_ID');
-      fbq('track', 'PageView');
-    </script>
-
-    <script>
-      !function (w, d, t) {
-        w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"];ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e};ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=i,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};var o=document.createElement("script");o.type="text/javascript",o.async=!0,o.src=i+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};
-        ttq.load('YOUR_TIKTOK_PIXEL_ID');
-        ttq.page();
-      }(window, document, 'ttq');
-    </script>
-
+    <style>
+      body { font-family: 'Kanit', sans-serif; }
+    </style>
   </head>
-  <body>
-
-    <noscript>
-      <img height="1" width="1" style="display:none;" alt="" src="https://px.ads.linkedin.com/collect/?pid=YOUR_LINKEDIN_PARTNER_ID&fmt=gif" />
-    </noscript>
-
-    <noscript>
-      <img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=YOUR_FACEBOOK_PIXEL_ID&ev=PageView&noscript=1"/>
-    </noscript>
-
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx" fetchpriority="high"></script>
+  <body class="bg-slate-950 text-slate-100 antialiased overflow-x-hidden">
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
   </body>
 </html>
