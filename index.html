@@ -8,17 +8,22 @@
     <!-- Open Graph Tags -->
     <meta property="og:title" content="GL Showtime" />
     <meta property="og:description" content="แพลตฟอร์มจัดการบริการและข้อมูลที่ทันสมัย" />
-    <meta property="og:image" content="https://gl-showtime.vercel.app/og-image.jpg" />
-    <meta property="og:url" content="https://gl-showtime.vercel.app/" />
+    <meta property="og:image" content="https://series-gl-bl.vercel.app/og-image.jpg" />
+    <meta property="og:url" content="https://series-gl-bl.vercel.app/" />
     <meta property="og:type" content="website" />
 
-    <!-- Google Fonts (Kanit) -->
+    <!-- Resource Hints & Priority Hints -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
+    <!-- Preconnect ไปยัง Supabase เพื่อลดเวลาการเชื่อมต่อฐานข้อมูล -->
+    <link rel="preconnect" href="https://mchhmxkeepepvzzqvyjr.supabase.co" crossorigin>
+    <link rel="dns-prefetch" href="https://mchhmxkeepepvzzqvyjr.supabase.co">
+    
     <!-- Priority Hints (สำหรับภาพ Hero Banner) -->
     <link rel="preload" fetchpriority="high" as="image" href="/hero-bg.jpg" type="image/jpeg">
+
+    <!-- Google Fonts (Kanit) -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
       body { font-family: 'Kanit', sans-serif; }
@@ -26,6 +31,11 @@
   </head>
   <body class="bg-slate-950 text-slate-100 antialiased overflow-x-hidden">
     <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
+    
+    <!-- Priority Hint ให้โหลด Script หลักของ Vue ด้วยลำดับความสำคัญสูงสุด -->
+    <script type="module" src="/src/main.js" fetchpriority="high"></script>
+
+    <!-- Instant.page: ช่วย Preload หน้าเว็บล่วงหน้าเมื่อผู้ใช้ Hover ที่ลิงก์ -->
+    <script src="//instant.page/5.2.0" type="module" integrity="sha384-jnZyxPjiipYXnSU0ygqeac2q7CVYMbh84q0uHVRRxK3j000OjlOrG78x4b04z98O"></script>
   </body>
 </html>
